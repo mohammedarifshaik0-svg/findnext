@@ -6,7 +6,9 @@ export const dynamic = "force-dynamic";
 
 async function getPortfolio(slug: string) {
   const supabase = await createClient();
-  const { data: profile } = await supabase.from("profiles").select("*").eq("portfolio_slug", slug).eq("is_public", true).maybeSingle();
+  const { data: authData } = await supabase.auth.getClaims();
+  const userId = typeof authData?.claims?.sub === "string" ? authData.claims.sub : null;
+  const { data: profile } = await supabase.from("profiles").select("*").eq("portfolio_slug", slug).maybeSingle();
   if (!profile) return null;
   const id = String(profile.id);
   const [experiences, education, items, subscription] = await Promise.all([
@@ -17,7 +19,8 @@ async function getPortfolio(slug: string) {
   ]);
   const isPaid = subscription.data?.plan === "live" || subscription.data?.plan === "premium";
   const trialActive = typeof profile.trial_ends_at === "string" && new Date(profile.trial_ends_at).getTime() > Date.now();
-  if (!isPaid && !trialActive) return null;
+  const isOwnerPreview = userId === id;
+  if (!isOwnerPreview && (!profile.is_public || (!isPaid && !trialActive))) return null;
   return { profile, experiences: experiences.data ?? [], education: education.data ?? [], items: items.data ?? [] };
 }
 

@@ -1,4 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { extractResumeText, parseResumeText } from "@/lib/resume-parser";
+
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const supabase = await createClient(); const { data } = await supabase.auth.getClaims(); const userId = typeof data?.claims?.sub === "string" ? data.claims.sub : null;
@@ -10,7 +13,29 @@ export async function POST(request: Request) {
   const { error: uploadError } = await supabase.storage.from("resumes").upload(storagePath, file, { contentType: file.type, upsert: false });
   if (uploadError) return Response.json({ error: uploadError.message }, { status: 500 });
   await supabase.from("resumes").update({ is_primary: false }).eq("profile_id", userId);
-  const { error } = await supabase.from("resumes").insert({ id, profile_id: userId, storage_path: storagePath, original_name: file.name, content_type: file.type, size_bytes: file.size, parse_status: "review", is_primary: true });
+  const { error } = await supabase.from("resumes").insert({ id, profile_id: userId, storage_path: storagePath, original_name: file.name, content_type: file.type, size_bytes: file.size, parse_status: "processing", is_primary: true });
   if (error) { await supabase.storage.from("resumes").remove([storagePath]); return Response.json({ error: error.message }, { status: 500 }); }
-  return Response.json({ ok: true, id, name: file.name, size: file.size, status: "review" }, { status: 201 });
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const extractedText = await extractResumeText(buffer, file.type);
+    const parsedData = parseResumeText(extractedText);
+    const { error: extractionError } = await supabase.from("resume_extractions").insert({
+      resume_id: id,
+      profile_id: userId,
+      parser_version: "rules-v1",
+      status: "complete",
+      extracted_text: extractedText.slice(0, 100000),
+      extracted_json: parsedData,
+    });
+    if (extractionError) throw extractionError;
+    const { error: statusError } = await supabase.from("resumes").update({ parse_status: "review" }).eq("id", id);
+    if (statusError) throw statusError;
+    return Response.json({ ok: true, id, name: file.name, size: file.size, status: "review", parsedData }, { status: 201 });
+  } catch (parseError) {
+    const message = parseError instanceof Error ? parseError.message : "Could not read this résumé.";
+    await supabase.from("resume_extractions").insert({ resume_id: id, profile_id: userId, parser_version: "rules-v1", status: "failed", parse_error: message });
+    await supabase.from("resumes").update({ parse_status: "failed" }).eq("id", id);
+    return Response.json({ error: "The résumé was stored, but we could not read its text. Try a text-based PDF or DOCX.", id, status: "failed" }, { status: 422 });
+  }
 }
