@@ -1,0 +1,13 @@
+"use client";
+
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
+
+export function AuthPanel() {
+  const [mode, setMode] = useState<"signin" | "signup">("signin"); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [loading, setLoading] = useState(false); const [message, setMessage] = useState("");
+  const submit = async () => { setLoading(true); setMessage(""); const supabase = createClient(); const result = mode === "signup" ? await supabase.auth.signUp({ email, password }) : await supabase.auth.signInWithPassword({ email, password }); setLoading(false); if (result.error) { setMessage(result.error.message); return; } if (mode === "signup" && !result.data.session) { setMessage("Check your email to confirm your account, then sign in."); return; } window.location.reload(); };
+  return <main className="grid min-h-screen place-items-center bg-[#f4f6fb] px-6"><section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_30px_100px_rgba(21,32,64,.12)] sm:p-12"><div className="brand-mark">FN</div><p className="mt-8 text-sm font-semibold uppercase tracking-[.18em] text-indigo-600">FindNext</p><h1 className="mt-3 text-4xl font-semibold tracking-[-.04em] text-slate-950 sm:text-5xl">Your career, made visible.</h1><p className="mt-5 max-w-md text-lg leading-8 text-slate-600">Turn your résumé into a polished portfolio and keep every career detail ready for your next opportunity.</p><div className="mt-8 space-y-3"><Input className="h-12" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" /><Input className="h-12" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (minimum 8 characters)" /><Button className="h-12 w-full" onClick={submit} disabled={loading || !email || password.length < 8}>{loading && <Loader2 className="h-4 w-4 animate-spin" />}{mode === "signup" ? "Create my profile" : "Sign in"}</Button></div>{message && <p className="mt-4 rounded-xl bg-indigo-50 p-3 text-sm text-indigo-800">{message}</p>}<button className="mt-5 text-sm font-semibold text-indigo-600" onClick={() => setMode(mode === "signin" ? "signup" : "signin")}>{mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}</button><p className="mt-5 text-sm leading-6 text-slate-500">Nothing is published until you review and approve it.</p></section></main>;
+}
