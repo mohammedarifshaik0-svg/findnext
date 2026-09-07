@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { planRequestReceivedEmail } from "@/lib/email-templates";
+import { sendFindNextEmail } from "@/lib/email";
 
 const PRICES = {
   live: { "28_days": 5000, annual: 49900 },
@@ -67,5 +69,8 @@ export async function POST(request: Request) {
   const cycleLabel = billingCycle === "annual" ? "annual" : "28-day";
   const subject = `FindNext ${plan.toUpperCase()} ${cycleLabel} plan request`;
   const message = `Hello FindNext,\n\nI requested the ${plan.toUpperCase()} ${cycleLabel} plan.\nRequest ID: ${planRequest.id}\nAccount: ${profile.email}\n${referralCode ? `Referral code: ${referralCode}\n` : ""}\nPlease send me the payment instructions and my activation code after verification.`;
-  return Response.json({ ok: true, requestId: planRequest.id, mailto: `mailto:findnext@ignyxx.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}` });
+  const amount = `₹${PRICES[plan][billingCycle] / 100}`;
+  const acknowledgement = planRequestReceivedEmail({ name: profile.email.split("@")[0], requestId: planRequest.id, plan: plan.toUpperCase(), cycle: cycleLabel, amount });
+  const delivery = await sendFindNextEmail({ to: profile.email, ...acknowledgement }, `plan-request-${planRequest.id}`).catch(() => ({ sent: false as const, reason: "provider_error" as const }));
+  return Response.json({ ok: true, requestId: planRequest.id, acknowledgementSent: delivery.sent, mailto: `mailto:findnext@ignyxx.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}` });
 }

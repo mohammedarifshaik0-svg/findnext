@@ -50,7 +50,7 @@ export function PlansPanel({ email }: { email: string }) {
       const response = await fetch("/api/billing", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ plan, billingCycle: cycle, referralCode: referralInput }) });
       const result = await readResponse(response);
       if (!response.ok) throw new Error(result.error || "Could not create the plan request.");
-      setNotice("Request saved. Your email app is opening so you can ask for secure payment instructions.");
+      setNotice(result.acknowledgementSent ? "Request saved. We emailed you a confirmation; your email app is opening so you can reply to support." : "Request saved. Your email app is opening with the request details for support.");
       await load();
       window.location.assign(result.mailto);
     } catch (error) { setNotice(error instanceof Error ? error.message : "Could not request the plan."); }
