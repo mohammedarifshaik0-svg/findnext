@@ -1,15 +1,15 @@
 import { paletteFor, portfolioStyle } from "@/lib/portfolio-style";
 
-type PreviewData = { fullName: string; headline: string; professionalSummary: string; theme: string; accent: string; effectIntensity: number; photoPath?: string | null; portfolioSlug?: string; experiences: Array<{ id: string; role: string; company: string }>; items: Array<{ id: string; itemType: string; title: string }> };
+type PreviewData = { fullName: string; headline: string; professionalSummary: string; theme: string; accent: string; textTone: string; effectIntensity: number; photoPath?: string | null; portfolioSlug?: string; experiences: Array<{ id: string; role: string; company: string }>; items: Array<{ id: string; itemType: string; title: string }> };
 
 const skills = (data: PreviewData) => data.items.filter((item) => item.itemType === "skill").slice(0, 4);
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "YN";
 
 export function PortfolioMiniPreview({ data }: { data: PreviewData }) {
   const palette = paletteFor(data.theme, data.accent);
-  const style = portfolioStyle(data.theme, data.accent, data.effectIntensity);
+  const style = portfolioStyle(data.theme, data.accent, data.effectIntensity, data.textTone);
   const atmosphere = { backgroundImage: `radial-gradient(circle at 50% 8%, ${palette.colors[1]}88, transparent 34%), radial-gradient(circle at 0% 75%, ${palette.colors[0]}55, transparent 32%), radial-gradient(circle at 100% 70%, ${palette.colors[2]}55, transparent 32%)`, opacity: Math.max(.08, data.effectIntensity / 100) };
-  if (data.theme === "canvas") return <div className="relative min-h-[650px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-white" style={style}>
+  if (data.theme === "canvas") return <div className="relative min-h-[650px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]" style={style}>
     <div className="absolute inset-0" style={atmosphere} />
     <div className="relative text-center"><p className="text-[9px] font-semibold uppercase tracking-[.25em] text-slate-400">Professional portfolio</p><h2 className="mt-5 text-5xl font-black leading-[.88] tracking-[-.06em]">{data.fullName || "Your name"}</h2><p className="mt-4 text-xs text-slate-300">{data.headline || "Professional headline"}</p><div className="mx-auto mt-5 h-0.5 w-20 bg-gradient-to-r from-teal-400 via-violet-500 to-pink-500" /></div>
     <div className="relative mt-12 border-t border-white/10 pt-7"><p className="bg-gradient-to-r from-teal-400 to-pink-400 bg-clip-text text-[9px] font-bold uppercase tracking-[.2em] text-transparent">01 / Identity</p><p className="mt-3 text-xl font-bold leading-tight">Clarity, curiosity and measurable change.</p><p className="mt-4 line-clamp-4 text-xs leading-5 text-slate-400">{data.professionalSummary || "Your professional story will appear here."}</p></div>
@@ -17,7 +17,7 @@ export function PortfolioMiniPreview({ data }: { data: PreviewData }) {
     <div className="relative mt-8"><p className="text-[9px] font-bold uppercase tracking-[.2em] text-violet-300">Trajectory</p>{data.experiences.slice(0, 2).map((row) => <div key={row.id} className="mt-4 border-l border-violet-400/50 pl-4"><p className="text-xs font-semibold">{row.role || "Role"}</p><p className="mt-1 text-[10px] text-slate-500">{row.company || "Company"}</p></div>)}</div>
   </div>;
 
-  if (data.theme === "ledger") return <div className="relative min-h-[650px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-white" style={style}>
+  if (data.theme === "ledger") return <div className="relative min-h-[650px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]" style={style}>
     <div className="pointer-events-none absolute inset-0" style={{ backgroundImage: `radial-gradient(circle at 85% 12%, ${palette.colors[0]}33, transparent 30%)`, opacity: data.effectIntensity / 100 }} />
     <div className="relative">
     <div className="flex items-center justify-between border-b border-[#1c1c1f] pb-5"><p className="text-[10px] font-semibold lowercase">{data.fullName || "your name"} · portfolio</p><span className="text-[9px] text-[#829579]">active</span></div>
@@ -27,7 +27,7 @@ export function PortfolioMiniPreview({ data }: { data: PreviewData }) {
     </div>
   </div>;
 
-  return <div className="relative min-h-[650px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[#f4efeb] [font-family:Georgia,serif]" style={style}>
+  return <div className="relative min-h-[650px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)] [font-family:Georgia,serif]" style={style}>
     <div className="pointer-events-none absolute inset-0" style={{ backgroundImage: `radial-gradient(circle at 20% 8%, ${palette.colors[0]}44, transparent 30%), radial-gradient(circle at 90% 65%, ${palette.colors[1]}44, transparent 32%)`, opacity: data.effectIntensity / 100 }} />
     <div className="relative">
     <div className="flex items-center justify-between"><p className="italic text-[#dfba86]">{data.fullName || "Portfolio"}</p><span className="rounded-full border border-[#dfba86]/30 px-3 py-1 text-[8px] tracking-[.14em] text-[#dfba86]">CONTACT</span></div>

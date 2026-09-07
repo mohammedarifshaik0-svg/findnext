@@ -17,6 +17,14 @@
     radial-gradient(circle at 48% 92%, color-mix(in srgb, var(--portfolio-accent-3) 32%, transparent), transparent 38%);
   filter: saturate(calc(.65 + var(--portfolio-fx) * .75));
 }
+
+.portfolio-surface [class~="text-slate-300"],
+.portfolio-surface [class~="text-slate-400"],
+.portfolio-surface [class~="text-[#aab1c5]"],
+.portfolio-surface [class~="text-[#8d96b0]"],
+.portfolio-surface [class~="text-[#7e7e86]"] {
+  color: var(--portfolio-muted);
+}
 @import "tw-animate-css";
 
 @utility scrollbar-thin {

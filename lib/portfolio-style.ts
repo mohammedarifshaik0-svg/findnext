@@ -6,6 +6,14 @@ export type PortfolioPalette = {
   background: string;
 };
 
+export type TextFinish = {
+  id: string;
+  name: string;
+  description: string;
+  primary: string;
+  muted: string;
+};
+
 export const portfolioPalettes: Record<string, readonly PortfolioPalette[]> = {
   studio: [
     { id: "champagne", name: "Champagne", description: "Warm, refined and editorial", colors: ["#dfba86", "#7c5cff", "#090e22"], background: "#090e22" },
@@ -30,6 +38,30 @@ export const defaultPaletteForTheme: Record<string, string> = {
   ledger: "moss",
 };
 
+export const textFinishes: Record<string, readonly TextFinish[]> = {
+  studio: [
+    { id: "ivory", name: "Ivory", description: "Original warm editorial", primary: "#f4efeb", muted: "#aab1c5" },
+    { id: "pearl", name: "Pearl", description: "Crisp and contemporary", primary: "#f8fafc", muted: "#b8c4d8" },
+    { id: "parchment", name: "Parchment", description: "Soft literary warmth", primary: "#fff0df", muted: "#cbb9a6" },
+  ],
+  canvas: [
+    { id: "polar", name: "Polar", description: "Original luminous white", primary: "#ffffff", muted: "#94a3b8" },
+    { id: "lilac", name: "Lilac", description: "Dreamlike violet light", primary: "#f6efff", muted: "#c4b5fd" },
+    { id: "glacier", name: "Glacier", description: "Cool cinematic clarity", primary: "#ecfeff", muted: "#9edee8" },
+  ],
+  ledger: [
+    { id: "chalk", name: "Chalk", description: "Original pure contrast", primary: "#ffffff", muted: "#7e7e86" },
+    { id: "mist", name: "Mist", description: "Quiet mineral green", primary: "#e7f0ee", muted: "#8aa09b" },
+    { id: "sand", name: "Sand", description: "Warm restrained neutral", primary: "#f4efe6", muted: "#9f9588" },
+  ],
+};
+
+export const defaultTextFinishForTheme: Record<string, string> = {
+  studio: "ivory",
+  canvas: "polar",
+  ledger: "chalk",
+};
+
 export function palettesForTheme(theme: string) {
   return portfolioPalettes[theme] ?? portfolioPalettes.studio;
 }
@@ -39,14 +71,26 @@ export function paletteFor(theme: string, paletteId?: string) {
   return palettes.find((palette) => palette.id === paletteId) ?? palettes[0];
 }
 
-export function portfolioStyle(theme: string, paletteId?: string, intensity = 65) {
+export function textFinishesForTheme(theme: string) {
+  return textFinishes[theme] ?? textFinishes.studio;
+}
+
+export function textFinishFor(theme: string, finishId?: string) {
+  const finishes = textFinishesForTheme(theme);
+  return finishes.find((finish) => finish.id === finishId) ?? finishes[0];
+}
+
+export function portfolioStyle(theme: string, paletteId?: string, intensity = 65, textFinishId?: string) {
   const palette = paletteFor(theme, paletteId);
+  const text = textFinishFor(theme, textFinishId);
   const normalized = Math.max(0, Math.min(100, Number(intensity) || 0)) / 100;
   return {
     "--portfolio-accent": palette.colors[0],
     "--portfolio-accent-2": palette.colors[1],
     "--portfolio-accent-3": palette.colors[2],
     "--portfolio-bg": palette.background,
+    "--portfolio-text": text.primary,
+    "--portfolio-muted": text.muted,
     "--portfolio-fx": normalized.toFixed(2),
   } as CSSProperties;
 }
