@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,11 @@ export function AuthPanel() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const referral = new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase();
+    if (referral) window.localStorage.setItem("findnext_referral", referral);
+  }, []);
 
   const signInWithGoogle = async () => {
     setGoogleLoading(true);
