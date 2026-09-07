@@ -1,3 +1,4 @@
+import { CanvasFactory } from "pdf-parse/worker";
 import { PDFParse } from "pdf-parse";
 import * as mammoth from "mammoth";
 
@@ -211,7 +212,7 @@ function listItems(lines: string[], itemType: ParsedItem["itemType"], limit = 30
 
 export async function extractResumeText(buffer: Buffer, contentType: string) {
   if (contentType === "application/pdf") {
-    const parser = new PDFParse({ data: buffer });
+    const parser = new PDFParse({ data: buffer, CanvasFactory });
     try {
       const result = await parser.getText();
       return result.text;

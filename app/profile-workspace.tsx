@@ -35,6 +35,15 @@ const mergeParsedResume = (current: State, parsed: ParsedResume): State => ({
   items: parsed.items.length ? parsed.items : current.items,
 });
 
+async function readApiResponse(response: Response): Promise<Record<string, unknown>> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    return response.json() as Promise<Record<string, unknown>>;
+  }
+  await response.text().catch(() => "");
+  return { error: response.ok ? "The server returned an unexpected response." : "The résumé service temporarily failed. Please try again." };
+}
+
 function Field({ label, value, onChange, placeholder, type = "text" }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
   return <label className="field"><span>{label}</span><Input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} /></label>;
 }
@@ -74,9 +83,9 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
     setNotice("");
     try {
       const response = await fetch("/api/profile", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Could not save changes.");
-      setSavedAt(result.savedAt);
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error || "Could not save changes."));
+      setSavedAt(String(result.savedAt ?? ""));
       setNotice(successMessage);
       return true;
     } catch (error) {
@@ -96,19 +105,20 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
   };
   const uploadResume = async (file?: File) => {
     if (!file) return;
-    setNotice("Uploading and reading your résumé…");
-    const profileReady = await save(data, "Profile ready for résumé import.");
-    if (!profileReady) return;
-    const form = new FormData();
-    form.append("resume", file);
-    const response = await fetch("/api/resume", { method: "POST", body: form });
-    const result = await response.json();
-    if (!response.ok) {
-      setNotice(result.error || "Upload failed.");
-      return;
+    try {
+      setNotice("Uploading and reading your résumé…");
+      const profileReady = await save(data, "Profile ready for résumé import.");
+      if (!profileReady) return;
+      const form = new FormData();
+      form.append("resume", file);
+      const response = await fetch("/api/resume", { method: "POST", body: form });
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error || "Upload failed."));
+      applyParsed(result.parsedData as ParsedResume, String(result.name), String(result.id), String(result.status));
+      if (fileRef.current) fileRef.current.value = "";
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not upload and read the résumé.");
     }
-    applyParsed(result.parsedData as ParsedResume, result.name, result.id, result.status);
-    if (fileRef.current) fileRef.current.value = "";
   };
   const reparseResume = async () => {
     if (!resume) return;
@@ -116,9 +126,9 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
     setNotice("Reading your saved résumé and rebuilding the draft…");
     try {
       const response = await fetch("/api/resume/reparse", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ resumeId: resume.id }) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Could not read the saved résumé.");
-      applyParsed(result.parsedData as ParsedResume, result.name, result.id, result.status);
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error || "Could not read the saved résumé."));
+      applyParsed(result.parsedData as ParsedResume, String(result.name), String(result.id), String(result.status));
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Could not read the saved résumé.");
     } finally {
