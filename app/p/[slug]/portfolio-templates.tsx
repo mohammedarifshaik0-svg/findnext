@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { ArrowDownToLine, ArrowUpRight, Mail, MapPin } from "lucide-react";
+import { paletteFor, portfolioStyle } from "@/lib/portfolio-style";
 
-type Row = Record<string, string | boolean | null>;
+type Row = Record<string, string | boolean | number | null>;
 export type PortfolioData = { profile: Row; experiences: Row[]; education: Row[]; items: Row[] };
 
 const value = (input: unknown) => typeof input === "string" ? input : "";
@@ -48,8 +49,10 @@ function EditorialTemplate({ data }: { data: PortfolioData }) {
   const { profile, experiences, education, items } = data;
   const { skills, projects, achievements, links, extras } = groups(items);
   const name = value(profile.full_name);
-  return <main className="min-h-screen overflow-hidden bg-[#090e22] text-[#f4efeb] [font-family:'Avenir_Next','Helvetica_Neue',Arial,sans-serif]">
-    <div className="h-1 bg-[#dfba86]" />
+  const palette = paletteFor("studio", value(profile.accent));
+  return <main className="portfolio-surface min-h-screen overflow-hidden bg-[var(--portfolio-bg)] text-[#f4efeb] [font-family:'Avenir_Next','Helvetica_Neue',Arial,sans-serif]" style={portfolioStyle("studio", value(profile.accent), Number(profile.effect_intensity ?? 65))}>
+    <div className="portfolio-atmosphere" />
+    <div className="relative z-[1] h-1" style={{ backgroundColor: palette.colors[0] }} />
     <nav className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-7 sm:px-10 lg:px-20">
       <a href="#top" className="text-xl italic text-[#dfba86] [font-family:'Iowan_Old_Style','Baskerville',Georgia,serif]">{name || "Portfolio"}</a>
       <div className="hidden items-center gap-8 text-xs font-semibold tracking-[.14em] text-[#8d96b0] md:flex"><a href="#story">STORY</a><a href="#experience">RECORD</a><a href="#work">WORK</a></div>
@@ -102,7 +105,8 @@ function PrismTemplate({ data }: { data: PortfolioData }) {
   const { profile, experiences, education, items } = data;
   const { skills, projects, achievements, links } = groups(items);
   const name = value(profile.full_name);
-  return <main className="min-h-screen overflow-hidden bg-[#050508] text-white [font-family:'Avenir_Next','Helvetica_Neue',Arial,sans-serif]">
+  return <main className="portfolio-surface min-h-screen overflow-hidden bg-[var(--portfolio-bg)] text-white [font-family:'Avenir_Next','Helvetica_Neue',Arial,sans-serif]" style={portfolioStyle("canvas", value(profile.accent), Number(profile.effect_intensity ?? 65))}>
+    <div className="portfolio-atmosphere" />
     <header className="relative isolate px-6 pb-24 pt-28 text-center sm:px-10 lg:px-20 lg:pb-36 lg:pt-40">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_20%,rgba(124,58,237,.38),transparent_38%),radial-gradient(ellipse_at_18%_80%,rgba(13,148,136,.23),transparent_36%),radial-gradient(ellipse_at_82%_75%,rgba(236,72,153,.2),transparent_35%),linear-gradient(#030305,#0b0b16_50%,#08060e)]" />
       <p className="text-xs font-semibold uppercase tracking-[.26em] text-slate-400">Professional portfolio</p>
@@ -135,7 +139,8 @@ function ZenTemplate({ data }: { data: PortfolioData }) {
   const { profile, experiences, education, items } = data;
   const { skills, projects, achievements, links } = groups(items);
   const name = value(profile.full_name);
-  return <main className="min-h-screen bg-black text-white [font-family:'Helvetica_Neue',Arial,sans-serif]">
+  return <main className="portfolio-surface min-h-screen bg-[var(--portfolio-bg)] text-white [font-family:'Helvetica_Neue',Arial,sans-serif]" style={portfolioStyle("ledger", value(profile.accent), Number(profile.effect_intensity ?? 65))}>
+    <div className="portfolio-atmosphere" />
     <nav className="flex items-center justify-between border-b border-[#1c1c1f] px-6 py-7 sm:px-10 lg:px-20"><span className="text-sm font-semibold lowercase">{name} · portfolio</span><ExternalLinks links={links} className="text-[#7e7e86] hover:text-white" /></nav>
     <header className={`grid min-h-[720px] border-b border-[#1c1c1f] ${profile.photo_path ? "lg:grid-cols-[1fr_.62fr]" : ""}`}>
       <div className="flex flex-col justify-center px-6 py-24 sm:px-10 lg:px-20"><p className="text-xs tracking-[.25em] text-[#829579]">[ PROFILE / ACTIVE ]</p><h1 className="mt-7 max-w-5xl text-6xl font-bold leading-[.95] tracking-[-.055em] sm:text-8xl">{value(profile.headline) || name}</h1>{value(profile.headline) && <p className="mt-8 text-xl text-[#7e7e86]">{name}</p>}<p className="mt-10 max-w-3xl whitespace-pre-line text-lg leading-8 text-[#8b8b93]">{value(profile.professional_summary)}</p><div className="mt-9"><PortfolioActions profile={profile} tone="dark" /></div></div>
