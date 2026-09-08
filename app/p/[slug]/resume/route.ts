@@ -1,15 +1,14 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { loadPortfolioAccess } from "@/lib/published-portfolio";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const supabase = await createClient();
-  const { data: profile } = await supabase.from("profiles").select("id,full_name").eq("portfolio_slug", slug).maybeSingle();
-  if (!profile) return new Response(null, { status: 404 });
-  const { data: resume } = await supabase.from("resumes").select("storage_path,original_name,content_type").eq("profile_id", profile.id).eq("is_primary", true).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const access = await loadPortfolioAccess(slug);
+  const resume = access?.resume;
   if (!resume) return new Response("No résumé has been shared.", { status: 404 });
-  const { data, error } = await supabase.storage.from("resumes").download(resume.storage_path);
+  const { data, error } = await createAdminClient().storage.from("resumes").download(resume.storage_path);
   if (error || !data) return new Response(null, { status: 404 });
   const safeName = resume.original_name.replace(/["\r\n]/g, "");
   return new Response(data, {

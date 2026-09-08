@@ -19,12 +19,12 @@ import { defaultPaletteForTheme, defaultTextFinishForTheme, palettesForTheme, te
 type Experience = { id: string; company: string; role: string; location: string; startDate: string; endDate: string; isCurrent: boolean; description: string };
 type Education = { id: string; institution: string; qualification: string; field: string; startDate: string; endDate: string; grade: string; description: string };
 type Item = { id: string; itemType: "skill" | "project" | "achievement" | "certification" | "language" | "link"; title: string; subtitle: string; description: string; url: string; level: string; issuedAt: string };
-type State = { fullName: string; headline: string; professionalSummary: string; email: string; phone: string; city: string; country: string; pronouns: string; portfolioSlug: string; theme: string; accent: string; textTone: string; effectIntensity: number; photoPath: string | null; isPublic: boolean; consentProfileStorage: boolean; consentTalentDiscovery: boolean; experiences: Experience[]; education: Education[]; items: Item[] };
+type State = { fullName: string; headline: string; professionalSummary: string; email: string; phone: string; city: string; country: string; pronouns: string; portfolioSlug: string; theme: string; accent: string; textTone: string; effectIntensity: number; photoPath: string | null; isPublic: boolean; trialStartedAt: string | null; trialEndsAt: string | null; consentProfileStorage: boolean; consentTalentDiscovery: boolean; experiences: Experience[]; education: Education[]; items: Item[] };
 
 const uid = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const emptyExperience = (): Experience => ({ id: uid("exp"), company: "", role: "", location: "", startDate: "", endDate: "", isCurrent: false, description: "" });
 const emptyEducation = (): Education => ({ id: uid("edu"), institution: "", qualification: "", field: "", startDate: "", endDate: "", grade: "", description: "" });
-const defaultState = (account: { name: string; email: string }): State => ({ fullName: account.name, headline: "", professionalSummary: "", email: account.email, phone: "", city: "", country: "", pronouns: "", portfolioSlug: account.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), theme: "studio", accent: "champagne", textTone: "ivory", effectIntensity: 65, photoPath: null, isPublic: false, consentProfileStorage: true, consentTalentDiscovery: false, experiences: [], education: [], items: [] });
+const defaultState = (account: { name: string; email: string }): State => ({ fullName: account.name, headline: "", professionalSummary: "", email: account.email, phone: "", city: "", country: "", pronouns: "", portfolioSlug: account.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), theme: "studio", accent: "champagne", textTone: "ivory", effectIntensity: 65, photoPath: null, isPublic: false, trialStartedAt: null, trialEndsAt: null, consentProfileStorage: true, consentTalentDiscovery: false, experiences: [], education: [], items: [] });
 const mapRow = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key.replace(/_([a-z])/g, (_, c) => c.toUpperCase()), value]));
 const mergeParsedResume = (current: State, parsed: ParsedResume): State => ({
   ...current,
@@ -191,9 +191,34 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
       setNotice(`Your portfolio is saved, but before publishing please complete: ${missing.join(", ")}.`);
       return;
     }
-    const published = { ...data, isPublic: true };
-    setData(published);
-    await save(published, "Your portfolio is live. Your 7-day free trial has started.");
+    const saved = await save(data, "Draft saved. Publishing your approved version…");
+    if (!saved) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/profile/publish", { method: "POST" });
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error || "Could not publish your portfolio."));
+      setData((current) => ({
+        ...current,
+        isPublic: true,
+        trialStartedAt: current.trialStartedAt ?? String(result.publishedAt ?? ""),
+        trialEndsAt: result.trialEndsAt ? String(result.trialEndsAt) : current.trialEndsAt,
+      }));
+      if (result.unchanged) {
+        setNotice("Your live portfolio already matches this draft. No publish allowance was used.");
+      } else if (typeof result.limit === "number" && typeof result.remaining === "number") {
+        const reset = result.cycleEndsAt ? ` until ${new Date(String(result.cycleEndsAt)).toLocaleDateString()}` : " this cycle";
+        setNotice(`Your latest draft is live. ${result.remaining} of ${result.limit} Live publishing updates remain${reset}.`);
+      } else if (result.trialEndsAt) {
+        setNotice(`Your portfolio is live. Your free trial ends ${new Date(String(result.trialEndsAt)).toLocaleDateString()}.`);
+      } else {
+        setNotice("Your latest draft is live. Your plan includes unlimited publishing updates.");
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not publish your portfolio.");
+    } finally {
+      setSaving(false);
+    }
   };
   const preview = async () => {
     const previewTab = window.open("about:blank", "vxl-portfolio-preview");
@@ -224,9 +249,19 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
     await save(next, "Visual intensity saved.");
   };
   const unpublish = async () => {
-    const privateProfile = { ...data, isPublic: false };
-    setData(privateProfile);
-    await save(privateProfile, "Your portfolio is now private. Your trial clock is not reset.");
+    setSaving(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/profile/publish", { method: "DELETE" });
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error || "Could not make your portfolio private."));
+      setData((current) => ({ ...current, isPublic: false }));
+      setNotice("Your portfolio is now private. Your draft and trial clock are unchanged.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not make your portfolio private.");
+    } finally {
+      setSaving(false);
+    }
   };
   const addItem = (itemType: Item["itemType"]) => update("items", [...data.items, { id: uid("itm"), itemType, title: "", subtitle: "", description: "", url: "", level: "", issuedAt: "" }]);
   if (loading) return <main className="vxl-studio-loading"><div className="vxl-logo-mark">X</div><Loader2 className="h-5 w-5 animate-spin" /><span>Preparing your studio</span></main>;
@@ -258,7 +293,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
               <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4"><div className="flex items-center justify-between"><label className="text-sm font-semibold" htmlFor="effect-intensity">Visual intensity</label><span className="text-sm tabular-nums text-slate-500">{data.effectIntensity}%</span></div><Slider id="effect-intensity" className="mt-4" min={0} max={100} step={5} value={[data.effectIntensity]} onValueChange={(values) => update("effectIntensity", Math.round(values[0] ?? 65))} onValueCommit={commitIntensity} aria-label="Visual intensity" /><div className="mt-2 flex justify-between text-[11px] font-medium text-slate-400"><span>Quiet</span><span>Balanced</span><span>Vivid</span></div></div>
             </div>
             <div className="mt-6 flex justify-end"><Button variant="outline" onClick={preview} disabled={saving}><Eye className="h-4 w-4" />Open full preview</Button></div></Section></TabsContent>
-          <TabsContent value="publish"><Section title="Review and publish" description="Your free trial starts only after you complete these checks and press Publish."><Field label="Portfolio address" value={data.portfolioSlug} onChange={(v) => update("portfolioSlug", v.toLowerCase().replace(/[^a-z0-9-]/g, ""))} /><p className="mt-2 text-sm text-slate-500">thevxl.com/p/{data.portfolioSlug || "your-name"}</p><div className="mt-6 rounded-xl border border-slate-200 p-4"><p className="text-sm font-semibold">Publishing checklist</p><div className="mt-3 space-y-2">{completionChecks.map((item) => <div key={item.label} className="flex items-center gap-2 text-sm"><span className={`grid h-5 w-5 place-items-center rounded-full ${item.done ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>{item.done ? <Check className="h-3.5 w-3.5" /> : "·"}</span>{item.label}</div>)}</div></div><label className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 p-4"><Checkbox checked={data.consentProfileStorage} onCheckedChange={(value) => update("consentProfileStorage", Boolean(value))} /><span><strong className="block text-sm">Save my profile and résumé securely</strong><small className="mt-1 block text-slate-500">Required so you can return, edit and maintain your portfolio.</small></span></label><label className="mt-3 flex items-start gap-3 rounded-xl border border-slate-200 p-4"><Checkbox checked={data.consentTalentDiscovery} onCheckedChange={(value) => update("consentTalentDiscovery", Boolean(value))} /><span><strong className="block text-sm">Let verified employers discover me</strong><small className="mt-1 block text-slate-500">Optional. This can be changed any time.</small></span></label><div className="mt-6 rounded-xl bg-slate-950 p-5 text-white"><p className="text-xs font-semibold uppercase tracking-[.16em] text-indigo-300">You’re in our circle</p><p className="mt-2 text-lg font-semibold">{data.isPublic ? "Your portfolio is live." : "Review it. Love it. Then make it live."}</p><p className="mt-2 text-sm leading-6 text-slate-300">All templates are included. Your seven free days begin only when you publish.</p><div className="mt-5 flex flex-wrap gap-3">{data.isPublic ? <Button variant="outline" className="border-white/20 bg-white/10 text-white hover:bg-white/20" onClick={unpublish} disabled={saving}>Make private</Button> : <Button onClick={publish} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}Publish & start free trial</Button>}<Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white" onClick={preview} disabled={saving}><Eye className="h-4 w-4" />Preview first</Button></div></div></Section></TabsContent>
+          <TabsContent value="publish"><Section title="Review and publish" description="Save freely in your private draft, then choose when those changes replace the public version."><Field label="Portfolio address" value={data.portfolioSlug} onChange={(v) => update("portfolioSlug", v.toLowerCase().replace(/[^a-z0-9-]/g, ""))} /><p className="mt-2 text-sm text-slate-500">thevxl.com/p/{data.portfolioSlug || "your-name"}</p><div className="mt-6 rounded-xl border border-slate-200 p-4"><p className="text-sm font-semibold">Publishing checklist</p><div className="mt-3 space-y-2">{completionChecks.map((item) => <div key={item.label} className="flex items-center gap-2 text-sm"><span className={`grid h-5 w-5 place-items-center rounded-full ${item.done ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>{item.done ? <Check className="h-3.5 w-3.5" /> : "·"}</span>{item.label}</div>)}</div></div><label className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 p-4"><Checkbox checked={data.consentProfileStorage} onCheckedChange={(value) => update("consentProfileStorage", Boolean(value))} /><span><strong className="block text-sm">Save my profile and résumé securely</strong><small className="mt-1 block text-slate-500">Required so you can return, edit and maintain your portfolio.</small></span></label><label className="mt-3 flex items-start gap-3 rounded-xl border border-slate-200 p-4"><Checkbox checked={data.consentTalentDiscovery} onCheckedChange={(value) => update("consentTalentDiscovery", Boolean(value))} /><span><strong className="block text-sm">Let verified employers discover me</strong><small className="mt-1 block text-slate-500">Optional. This can be changed any time.</small></span></label><div className="mt-6 rounded-xl bg-slate-950 p-5 text-white"><p className="text-xs font-semibold uppercase tracking-[.16em] text-indigo-300">You’re in our circle</p><p className="mt-2 text-lg font-semibold">{data.isPublic ? "Your portfolio is live." : "Review it. Love it. Then make it live."}</p><p className="mt-2 text-sm leading-6 text-slate-300">All templates are included. Draft edits stay private until you publish them. Your seven free days begin only on your first publish.</p><div className="mt-5 flex flex-wrap gap-3"><Button onClick={publish} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}{data.isPublic ? "Publish saved changes" : data.trialStartedAt ? "Publish portfolio" : "Publish & start free trial"}</Button>{data.isPublic && <Button variant="outline" className="border-white/20 bg-white/10 text-white hover:bg-white/20" onClick={unpublish} disabled={saving}>Make private</Button>}<Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white" onClick={preview} disabled={saving}><Eye className="h-4 w-4" />Preview first</Button></div></div></Section></TabsContent>
           <TabsContent value="plans"><PlansPanel email={data.email || account.email} /></TabsContent>
         </Tabs>
       </section>

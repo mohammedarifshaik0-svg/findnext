@@ -33,10 +33,10 @@ export async function GET() {
 export async function PUT(request: Request) {
   const { supabase, userId } = await authorized(); if (!userId) return Response.json({ error: "Sign in to continue." }, { status: 401 });
   const payload = await request.json() as Payload; if (payload.consentProfileStorage !== true) return Response.json({ error: "Profile storage consent is required." }, { status: 400 });
-  const { data: current } = await supabase.from("profiles").select("trial_started_at,trial_ends_at").eq("id", userId).maybeSingle();
-  const now = new Date().toISOString(); const startsTrial = payload.isPublic === true && !current?.trial_started_at;
+  const { data: current } = await supabase.from("profiles").select("id,is_public,trial_started_at,trial_ends_at").eq("id", userId).maybeSingle();
+  const now = new Date().toISOString();
   const effectIntensity = Math.max(0, Math.min(100, Number.isFinite(payload.effectIntensity) ? Math.round(payload.effectIntensity!) : 65));
-  const profile = { id: userId, full_name: clean(payload.fullName, 120), headline: clean(payload.headline, 180), professional_summary: clean(payload.professionalSummary), email: clean(payload.email, 180), phone: clean(payload.phone, 40), city: clean(payload.city, 100), country: clean(payload.country, 100), pronouns: clean(payload.pronouns, 40), portfolio_slug: clean(payload.portfolioSlug, 80), theme: clean(payload.theme, 30) || "studio", accent: clean(payload.accent, 30) || "champagne", text_tone: clean(payload.textTone, 30) || "ivory", effect_intensity: effectIntensity, is_public: Boolean(payload.isPublic), trial_started_at: current?.trial_started_at ?? null, trial_ends_at: current?.trial_ends_at ?? null, consent_profile_storage: true, consent_talent_discovery: Boolean(payload.consentTalentDiscovery), updated_at: now };
+  const profile = { id: userId, full_name: clean(payload.fullName, 120), headline: clean(payload.headline, 180), professional_summary: clean(payload.professionalSummary), email: clean(payload.email, 180), phone: clean(payload.phone, 40), city: clean(payload.city, 100), country: clean(payload.country, 100), pronouns: clean(payload.pronouns, 40), portfolio_slug: clean(payload.portfolioSlug, 80), theme: clean(payload.theme, 30) || "studio", accent: clean(payload.accent, 30) || "champagne", text_tone: clean(payload.textTone, 30) || "ivory", effect_intensity: effectIntensity, is_public: current?.is_public ?? false, trial_started_at: current?.trial_started_at ?? null, trial_ends_at: current?.trial_ends_at ?? null, consent_profile_storage: true, consent_talent_discovery: Boolean(payload.consentTalentDiscovery), updated_at: now };
   const { error: profileError } = await supabase.from("profiles").upsert(profile);
   if (profileError) return Response.json({ error: profileError.message }, { status: 500 });
   const { error: deleteError } = await supabase.from("experiences").delete().eq("profile_id", userId); if (deleteError) return Response.json({ error: deleteError.message }, { status: 500 });
@@ -52,11 +52,7 @@ export async function PUT(request: Request) {
   const items = (payload.items ?? []).slice(0, 100).map((row, i) => ({ id: clean(row.id, 80) || crypto.randomUUID(), profile_id: userId, item_type: allowed.has(clean(row.itemType, 30)) ? clean(row.itemType, 30) : "skill", title: clean(row.title, 180), subtitle: clean(row.subtitle, 180), description: clean(row.description), url: clean(row.url, 500), level: clean(row.level, 80), issued_at: clean(row.issuedAt, 20), sort_order: i }));
   const inserts = await Promise.all([experiences.length ? supabase.from("experiences").insert(experiences) : Promise.resolve({ error: null }), education.length ? supabase.from("education").insert(education) : Promise.resolve({ error: null }), items.length ? supabase.from("profile_items").insert(items) : Promise.resolve({ error: null })]);
   const insertError = inserts.find((result) => result.error)?.error; if (insertError) return Response.json({ error: insertError.message }, { status: 500 });
-  const { error: revisionError } = await supabase.from("profile_revisions").insert({ profile_id: userId, changed_by: userId, change_type: startsTrial ? "portfolio_published" : current ? "profile_updated" : "profile_created", snapshot_json: payload });
+  const { error: revisionError } = await supabase.from("profile_revisions").insert({ profile_id: userId, changed_by: userId, change_type: current ? "profile_updated" : "profile_created", snapshot_json: payload });
   if (revisionError) return Response.json({ error: revisionError.message }, { status: 500 });
-  if (startsTrial) {
-    const { error: trialError } = await supabase.rpc("start_my_trial");
-    if (trialError) return Response.json({ error: trialError.message }, { status: 400 });
-  }
-  return Response.json({ ok: true, profileId: userId, savedAt: now });
+  return Response.json({ ok: true, profileId: userId, savedAt: now, isPublic: profile.is_public });
 }

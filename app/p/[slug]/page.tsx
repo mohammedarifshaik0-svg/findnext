@@ -1,28 +1,13 @@
 import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { cache } from "react";
+import { loadPortfolioAccess } from "@/lib/published-portfolio";
 import { PortfolioTemplate, type PortfolioData } from "./portfolio-templates";
 
 export const dynamic = "force-dynamic";
 
-async function getPortfolio(slug: string): Promise<PortfolioData | null> {
-  const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getClaims();
-  const userId = typeof authData?.claims?.sub === "string" ? authData.claims.sub : null;
-  const { data: profile } = await supabase.from("profiles").select("*").eq("portfolio_slug", slug).maybeSingle();
-  if (!profile) return null;
-  const id = String(profile.id);
-  const [experiences, education, items, subscription] = await Promise.all([
-    supabase.from("experiences").select("*").eq("profile_id", id).order("sort_order"),
-    supabase.from("education").select("*").eq("profile_id", id).order("sort_order"),
-    supabase.from("profile_items").select("*").eq("profile_id", id).order("sort_order"),
-    supabase.from("subscriptions").select("plan,status,period_ends_at").eq("profile_id", id).maybeSingle(),
-  ]);
-  const isPaid = ["live", "flex", "care"].includes(String(subscription.data?.plan)) && subscription.data?.status === "active" && typeof subscription.data.period_ends_at === "string" && new Date(subscription.data.period_ends_at).getTime() > Date.now();
-  const trialActive = typeof profile.trial_ends_at === "string" && new Date(profile.trial_ends_at).getTime() > Date.now();
-  const isOwnerPreview = userId === id;
-  if (!isOwnerPreview && (!profile.is_public || (!isPaid && !trialActive))) return null;
-  return { profile, experiences: experiences.data ?? [], education: education.data ?? [], items: items.data ?? [] };
-}
+const getPortfolio = cache(async (slug: string): Promise<PortfolioData | null> =>
+  (await loadPortfolioAccess(slug))?.data ?? null
+);
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
