@@ -2,11 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "VXL — Your résumé, reimagined",
+  title: "VXL — Your Resume, Reimagined",
   description: "Turn your résumé into a story-led portfolio website. We Excel. We Grow Together.",
-  other: {
-    "codex-preview": "development",
-  },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
