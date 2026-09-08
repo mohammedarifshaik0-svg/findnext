@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 
 type BillingCycle = "28_days" | "annual";
 type Plan = "live" | "flex" | "care";
-type BillingData = { referral?: { code: string }; attribution?: { referral_code: string; status: string }; requests?: Array<{ id: string; plan: Plan; billing_cycle: BillingCycle; status: string; created_at: string }> };\ntype PlanToast = { kind: "success" | "error"; title: string; message: string };
+type BillingData = { referral?: { code: string }; attribution?: { referral_code: string; status: string }; requests?: Array<{ id: string; plan: Plan; billing_cycle: BillingCycle; status: string; created_at: string }> };
+type PlanToast = { kind: "success" | "error"; title: string; message: string };
 
 const plans: Array<{ id: Plan; name: string; prices: Record<BillingCycle, number>; description: string; features: string[]; featured?: boolean }> = [
   { id: "live", name: "Live", prices: { "28_days": 50, annual: 499 }, description: "A polished portfolio that stays online.", features: ["Secure portfolio hosting", "Every template included", "Custom FindNext address"] },
