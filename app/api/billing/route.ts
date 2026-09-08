@@ -46,13 +46,18 @@ export async function GET() {
     }
   }
 
-  const [{ data: requests, error: requestsError }, { data: attribution, error: attributionError }] = await Promise.all([
+  const [
+    { data: requests, error: requestsError },
+    { data: attribution, error: attributionError },
+    { data: subscription, error: subscriptionError },
+  ] = await Promise.all([
     supabase.from("plan_requests").select("id,plan,billing_cycle,amount_paise,status,created_at").eq("profile_id", userId).order("created_at", { ascending: false }).limit(5),
     supabase.from("referral_attributions").select("referral_code,status").eq("referred_profile_id", userId).maybeSingle(),
+    supabase.from("subscriptions").select("plan,status,period_starts_at,period_ends_at,updated_at").eq("profile_id", userId).maybeSingle(),
   ]);
-  const error = requestsError || attributionError;
+  const error = requestsError || attributionError || subscriptionError;
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  return Response.json({ referral, attribution, requests });
+  return Response.json({ referral, attribution, requests, subscription });
 }
 
 export async function POST(request: Request) {
