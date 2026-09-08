@@ -1,27 +1,23 @@
-# FindNext manual payment operations
+# FindNext private payment operations
 
 This is the temporary payment flow until FindNext uses a registered business payment provider.
 
-1. A signed-in user chooses a plan in **Plans & referrals**. FindNext stores a price-validated `plan_requests` row and opens an email addressed to `findnext@ignyxx.in`.
-2. If Resend is configured, the user immediately receives the branded request-received email. Support calls the protected `/api/billing/send-instructions` endpoint with the request ID. It sends the confirmed amount, billing period, private UPI destination and safety warning; without Resend it returns a ready-to-send reply draft. Do not publish a personal UPI ID in the app or repository.
-3. After payment is independently verified, find the request ID from the email or the `plan_requests` table.
-4. Preferred: call the protected `/api/billing/issue-code` endpoint with the request ID, `paymentVerified: true`, and the `FINDNEXT_ADMIN_SECRET` bearer token. It issues the code and sends the branded activation email when Resend is configured.
+1. A signed-in user chooses LIVE, FLEX, or CARE in **Plans & referrals**. FindNext validates the price in the database, stores the request, and automatically emails the user a branded confirmation.
+2. An allowlisted owner signs into FindNext and opens `/admin/billing`. This route is not linked from the public app and returns a not-found page to every non-admin account.
+3. For a new request, select **Send payment instructions**. FindNext emails the exact plan, confirmed amount, private UPI destination, request ID, and payment-safety guidance. The personal UPI ID is never rendered in the public app or committed to GitHub.
+4. After the payment appears in the owner's own payment app and the amount/reference are verified, select **Payment verified — issue code** and confirm the warning.
+5. FindNext creates an account-bound activation code, stores only its SHA-256 hash, and automatically emails the readable code to the request's account address. A request can receive only one code. Codes expire after 14 days and can be redeemed only once.
+6. The user enters the code in **Plans & referrals → Activate after payment**. Redemption activates the correct 28-day or annual plan. A qualifying referrer receives 30 extra live days automatically.
 
-   If email delivery is not configured, the endpoint returns an email draft to the authorized operator. As a break-glass fallback, issue the code in the protected Supabase SQL editor:
+If activation-email delivery fails after code creation, the private dashboard displays the recovery code once. Copy it immediately and send it only to the email address on that request. It cannot be retrieved from the database later.
 
-   ```sql
-   select private.issue_activation_code('REQUEST_UUID_HERE');
-   ```
-
-5. Email the returned code to the same account address shown on the request. The code is bound to that user, expires after 14 days, and cannot be issued twice for the same request. The database stores only its SHA-256 hash plus delivery status, never the readable code.
-6. The user enters it in **Plans & referrals → Activate after payment**. Redemption activates the correct 28-day or annual plan. A qualifying referrer receives 30 extra live days automatically.
-
-Never paste payment credentials, service-role keys, or activation codes into GitHub. The database stores only activation-code hashes.
+Never approve payment from a screenshot alone. Never paste payment credentials, service-role keys, personal UPI IDs, or activation codes into GitHub or chat.
 
 ## Required server-only settings
 
-- `SUPABASE_SERVICE_ROLE_KEY`: used only by the protected code issuer.
-- `FINDNEXT_ADMIN_SECRET`: a long random bearer secret for the code issuer.
-- `RESEND_API_KEY`: enables the request confirmation and activation emails.
-- `FINDNEXT_FROM_EMAIL`: defaults to `FindNext <findnext@ignyxx.in>` after the domain is verified in Resend.
-- `FINDNEXT_UPI_ID`: server-only payment destination inserted into the instructions email, never shown on the public site.
+- `SUPABASE_SERVICE_ROLE_KEY`: used by the protected operations routes. Never prefix it with `NEXT_PUBLIC_`.
+- `FINDNEXT_ADMIN_EMAILS`: comma-separated lowercase email addresses allowed to open the private dashboard.
+- `RESEND_API_KEY`: sends request, instruction, and activation emails.
+- `FINDNEXT_FROM_EMAIL`: defaults to `FindNext <findnext@ignyxx.in>` after domain verification.
+- `FINDNEXT_UPI_ID`: private payment destination inserted only into the instruction email.
+- `FINDNEXT_ADMIN_SECRET`: optional break-glass bearer token for API-only operations; the web dashboard does not expose or require it.
