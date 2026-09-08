@@ -213,7 +213,7 @@ export function PlansPanel({ email }: { email: string }) {
   };
 
   const referralLink = billing.referral?.code
-    ? `${typeof window === "undefined" ? "https://findnext.vercel.app" : window.location.origin}/?ref=${billing.referral.code}`
+    ? `${typeof window === "undefined" ? "https://thevxl.com" : window.location.origin}/?ref=${billing.referral.code}`
     : "";
 
   const usageRows = activeSubscription && activeSubscription.plan !== "trial"
