@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     const { error } = await supabase.rpc("apply_referral_code", { input_code: referralCode });
     if (error) return Response.json({ error: error.message }, { status: 400 });
   }
-  const { data: profile, error: profileError } = await supabase.from("profiles").select("email").eq("id", userId).single();
+  const { data: profile, error: profileError } = await supabase.from("profiles").select("full_name,email").eq("id", userId).single();
   if (profileError) return Response.json({ error: profileError.message }, { status: 500 });
   const { data: planRequest, error } = await supabase.from("plan_requests").insert({
     profile_id: userId,
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
   const cycleLabel = billingCycle === "annual" ? "annual" : "28-day";
   const amount = `₹${PRICES[plan][billingCycle] / 100}`;
   const acknowledgement = planRequestReceivedEmail({
-    name: profile.email.split("@")[0],
+    name: profile.full_name?.trim() || profile.email.split("@")[0],
     requestId: planRequest.id,
     plan: plan.toUpperCase(),
     cycle: cycleLabel,
