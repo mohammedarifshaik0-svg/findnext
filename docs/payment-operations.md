@@ -21,3 +21,7 @@ Never approve payment from a screenshot alone. Never paste payment credentials, 
 - `FINDNEXT_FROM_EMAIL`: defaults to `FindNext <findnext@ignyxx.in>` after domain verification.
 - `FINDNEXT_UPI_ID`: private payment destination inserted only into the instruction email.
 - `FINDNEXT_ADMIN_SECRET`: optional break-glass bearer token for API-only operations; the web dashboard does not expose or require it.
+
+## Deployment note
+
+After changing any server-only setting, create a fresh production deployment. Existing deployments keep the environment snapshot they were built with.
