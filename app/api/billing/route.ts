@@ -8,6 +8,21 @@ const PRICES = {
   care: { "28_days": 25000, annual: 249900 },
 } as const;
 
+const PLAN_EMAIL_DETAILS = {
+  live: {
+    summary: "Your polished portfolio stays securely online with every template included.",
+    benefits: ["Secure portfolio hosting", "Every template included", "Your FindNext portfolio address"],
+  },
+  flex: {
+    summary: "Keep your portfolio live while updating your professional story whenever it changes.",
+    benefits: ["Everything in Live", "Unlimited self-updates", "Saved revision history"],
+  },
+  care: {
+    summary: "Get the complete FindNext experience with hands-on support for important updates.",
+    benefits: ["Everything in Flex", "Managed update requests", "Custom-domain assistance"],
+  },
+} as const;
+
 type Plan = keyof typeof PRICES;
 type BillingCycle = keyof typeof PRICES.live;
 
@@ -67,10 +82,25 @@ export async function POST(request: Request) {
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
   const cycleLabel = billingCycle === "annual" ? "annual" : "28-day";
-  const subject = `FindNext ${plan.toUpperCase()} ${cycleLabel} plan request`;
-  const message = `Hello FindNext,\n\nI requested the ${plan.toUpperCase()} ${cycleLabel} plan.\nRequest ID: ${planRequest.id}\nAccount: ${profile.email}\n${referralCode ? `Referral code: ${referralCode}\n` : ""}\nPlease send me the payment instructions and my activation code after verification.`;
   const amount = `₹${PRICES[plan][billingCycle] / 100}`;
-  const acknowledgement = planRequestReceivedEmail({ name: profile.email.split("@")[0], requestId: planRequest.id, plan: plan.toUpperCase(), cycle: cycleLabel, amount });
-  const delivery = await sendFindNextEmail({ to: profile.email, ...acknowledgement }, `plan-request-${planRequest.id}`).catch(() => ({ sent: false as const, reason: "provider_error" as const }));
-  return Response.json({ ok: true, requestId: planRequest.id, acknowledgementSent: delivery.sent, mailto: `mailto:findnext@ignyxx.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}` });
+  const acknowledgement = planRequestReceivedEmail({
+    name: profile.email.split("@")[0],
+    requestId: planRequest.id,
+    plan: plan.toUpperCase(),
+    cycle: cycleLabel,
+    amount,
+    ...PLAN_EMAIL_DETAILS[plan],
+  });
+  const delivery = await sendFindNextEmail({ to: profile.email, ...acknowledgement }, `plan-request-${planRequest.id}`);
+
+  if (!delivery.sent) {
+    console.error("[findnext-billing] acknowledgement_failed", { reason: delivery.reason });
+    return Response.json({
+      error: "Your request was saved, but we could not send the confirmation email. Please try again shortly.",
+      requestId: planRequest.id,
+      acknowledgementSent: false,
+    }, { status: 503 });
+  }
+
+  return Response.json({ ok: true, requestId: planRequest.id, acknowledgementSent: true }, { status: 201 });
 }
