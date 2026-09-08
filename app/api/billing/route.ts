@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { planRequestReceivedEmail } from "@/lib/email-templates";
 import { sendVxlEmail } from "@/lib/email";
 import { PLAN_PRICES, type BillingCycle, type PaidPlan as Plan } from "@/lib/plans";
@@ -77,6 +78,8 @@ export async function GET() {
 export async function POST(request: Request) {
   const { supabase, userId } = await authorized();
   if (!userId) return Response.json({ error: "Sign in to continue." }, { status: 401 });
+  const limited = await checkRateLimit(userId, "plan_request");
+  if (limited) return limited;
   const body = await request.json().catch(() => ({})) as { plan?: string; billingCycle?: string; referralCode?: string };
   if (!(body.plan && body.plan in PRICES)) return Response.json({ error: "Choose a valid plan." }, { status: 400 });
   if (body.billingCycle !== "28_days" && body.billingCycle !== "annual") return Response.json({ error: "Choose a valid billing cycle." }, { status: 400 });

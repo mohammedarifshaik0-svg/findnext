@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { extractResumeText, parseResumeText } from "@/lib/resume-parser";
 import { assertResumeReimportAvailable, recordResumeReimport } from "@/lib/resume-entitlements";
 
@@ -7,6 +8,8 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   const supabase = await createClient(); const { data } = await supabase.auth.getClaims(); const userId = typeof data?.claims?.sub === "string" ? data.claims.sub : null;
   if (!userId) return Response.json({ error: "Sign in to continue." }, { status: 401 });
+  const limited = await checkRateLimit(userId, "resume_import");
+  if (limited) return limited;
   const { data: existingResume } = await supabase.from("resumes").select("id").eq("profile_id", userId).eq("is_primary", true).maybeSingle();
   if (existingResume) {
     try { await assertResumeReimportAvailable(supabase, userId); }
