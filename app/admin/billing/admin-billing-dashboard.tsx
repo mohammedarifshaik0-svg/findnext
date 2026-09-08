@@ -65,9 +65,11 @@ export function AdminBillingDashboard({ adminEmail }: { adminEmail: string }) {
   const [filter, setFilter] = useState<Status | "all">("all");
   const [loading, setLoading] = useState(true);
   const [workingId, setWorkingId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ tone: "good" | "bad"; text: string } | null>(
-    null,
-  );
+  const [notice, setNotice] = useState<{
+    tone: "good" | "bad";
+    text: string;
+    sticky?: boolean;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,7 +93,7 @@ export function AdminBillingDashboard({ adminEmail }: { adminEmail: string }) {
   }, [load]);
 
   useEffect(() => {
-    if (!notice) return;
+    if (!notice || notice.sticky) return;
     const timeout = window.setTimeout(() => setNotice(null), 6500);
     return () => window.clearTimeout(timeout);
   }, [notice]);
@@ -147,7 +149,8 @@ export function AdminBillingDashboard({ adminEmail }: { adminEmail: string }) {
         if (payload.recoveryCode) {
           setNotice({
             tone: "bad",
-            text: `Email failed. Secure recovery code: ${payload.recoveryCode}`,
+            text: `Email delivery failed. Copy this secure recovery code now: ${payload.recoveryCode}`,
+            sticky: true,
           });
           await load();
           return;
@@ -361,7 +364,16 @@ export function AdminBillingDashboard({ adminEmail }: { adminEmail: string }) {
               : "border-rose-200 bg-rose-950 text-rose-50"
           }`}
         >
-          {notice.text}
+          <div className="flex items-start gap-3">
+            <span className="break-words">{notice.text}</span>
+            <button
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss notification"
+              className="shrink-0 rounded-lg border border-white/20 px-2 py-1 text-xs hover:bg-white/10"
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
     </main>
