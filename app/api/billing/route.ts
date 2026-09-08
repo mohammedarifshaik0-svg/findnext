@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { planRequestReceivedEmail } from "@/lib/email-templates";
-import { sendFindNextEmail } from "@/lib/email";
+import { sendVxlEmail } from "@/lib/email";
 import { PLAN_PRICES, type BillingCycle, type PaidPlan as Plan } from "@/lib/plans";
 
 const PRICES = {
@@ -110,10 +110,10 @@ export async function POST(request: Request) {
     amount,
     ...PLAN_EMAIL_DETAILS[plan],
   });
-  const delivery = await sendFindNextEmail({ to: profile.email, ...acknowledgement }, `plan-request-${planRequest.id}`);
+  const delivery = await sendVxlEmail({ to: profile.email, ...acknowledgement }, `plan-request-${planRequest.id}`);
 
   if (!delivery.sent) {
-    console.error("[findnext-billing] acknowledgement_failed", { reason: delivery.reason });
+    console.error("[vxl-billing] acknowledgement_failed", { reason: delivery.reason });
     return Response.json({
       error: "Your request was saved, but we could not send the confirmation email. Please try again shortly.",
       requestId: planRequest.id,
