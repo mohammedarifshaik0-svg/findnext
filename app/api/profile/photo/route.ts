@@ -24,7 +24,6 @@ export async function POST(request: Request) {
   if (!extension) return Response.json({ error: "Use a JPG, PNG or WebP image." }, { status: 400 });
   if (file.size > 5 * 1024 * 1024) return Response.json({ error: "Keep the photo under 5 MB." }, { status: 400 });
 
-  const { data: current } = await supabase.from("profiles").select("photo_path").eq("id", userId).maybeSingle();
   const path = `${userId}/profile-${crypto.randomUUID()}.${extension}`;
   const { error: uploadError } = await supabase.storage.from("profile-media").upload(path, file, {
     contentType: file.type,
@@ -38,18 +37,15 @@ export async function POST(request: Request) {
     await supabase.storage.from("profile-media").remove([path]);
     return Response.json({ error: profileError.message }, { status: 500 });
   }
-  if (current?.photo_path) await supabase.storage.from("profile-media").remove([current.photo_path]);
+  // Keep the previous object because the live portfolio may still reference it
+  // until the user publishes this new draft.
   return Response.json({ ok: true, photoPath: path });
 }
 
 export async function DELETE() {
   const { supabase, userId } = await authorized();
   if (!userId) return Response.json({ error: "Sign in to continue." }, { status: 401 });
-  const { data: profile } = await supabase.from("profiles").select("photo_path").eq("id", userId).maybeSingle();
-  if (profile?.photo_path) {
-    const { error } = await supabase.storage.from("profile-media").remove([profile.photo_path]);
-    if (error) return Response.json({ error: error.message }, { status: 500 });
-  }
+  // Keep the object because the last published snapshot may still reference it.
   const { error } = await supabase.from("profiles").update({ photo_path: null, updated_at: new Date().toISOString() }).eq("id", userId);
   if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json({ ok: true });
