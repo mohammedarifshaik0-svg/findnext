@@ -2,11 +2,23 @@ const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (character) => (
 
 const shell = (preview: string, title: string, content: string) => `<!doctype html><html><body style="margin:0;background:#f4f6fb;color:#111827;font-family:Arial,sans-serif"><div style="display:none;max-height:0;overflow:hidden">${escapeHtml(preview)}</div><div style="max-width:600px;margin:0 auto;padding:36px 18px"><div style="background:#090e22;border-radius:20px;padding:30px;color:#f8fafc"><div style="font-size:13px;letter-spacing:.18em;color:#a5b4fc;font-weight:700">FINDNEXT</div><h1 style="font-size:30px;line-height:1.15;margin:18px 0 0">${escapeHtml(title)}</h1>${content}<p style="margin:28px 0 0;padding-top:20px;border-top:1px solid #26304e;color:#94a3b8;font-size:13px;line-height:1.6">Only for the closest ones. Your portfolio stays yours—private until you publish, free of ads, and backed by a real person.<br><a style="color:#c7d2fe" href="mailto:findnext@ignyxx.in">findnext@ignyxx.in</a></p></div></div></body></html>`;
 
-type PlanEmailInput = { name: string; requestId: string; plan: string; cycle: string; amount: string };
+type PlanEmailInput = { name: string; requestId: string; plan: string; cycle: string; amount: string; summary?: string; benefits?: readonly string[] };
+
+const benefitText = (benefits?: readonly string[]) => benefits?.length ? `\nIncluded:\n${benefits.map((benefit) => `• ${benefit}`).join("\n")}\n` : "";
+const benefitHtml = (benefits?: readonly string[]) => benefits?.length ? `<div style="margin:22px 0;padding:18px;border:1px solid #303b60;border-radius:12px"><div style="font-size:12px;letter-spacing:.12em;color:#a5b4fc;font-weight:700">WHAT'S INCLUDED</div><ul style="margin:12px 0 0;padding-left:20px;color:#e2e8f0;line-height:1.9">${benefits.map((benefit) => `<li>${escapeHtml(benefit)}</li>`).join("")}</ul></div>` : "";
 
 export function planRequestReceivedEmail(input: PlanEmailInput) {
-  const text = `Hi ${input.name},\n\nWe received your FindNext ${input.plan} request (${input.cycle}) for ${input.amount}.\nRequest ID: ${input.requestId}\n\nReply to this email if you want to continue. We will confirm the payment instructions and exact amount before you pay. Never send an OTP, password or card details.\n\nFindNext support\nfindnext@ignyxx.in`;
-  return { subject: `We received your FindNext ${input.plan} request`, text, html: shell("Your FindNext plan request is safely recorded.", "Your request is in our circle.", `<p style="color:#cbd5e1;line-height:1.75;margin:20px 0 0">Hi ${escapeHtml(input.name)}, we received your <strong>${escapeHtml(input.plan)}</strong> request for <strong>${escapeHtml(input.amount)}</strong> (${escapeHtml(input.cycle)}).</p><div style="margin:22px 0;padding:16px;border:1px solid #303b60;border-radius:12px;color:#c7d2fe;font-family:monospace">Request ${escapeHtml(input.requestId)}</div><p style="color:#cbd5e1;line-height:1.75">Reply when you are ready. We will confirm the payment instructions and exact amount before you pay. Never share an OTP, password or card details.</p>`) };
+  const summary = input.summary ? `\n${input.summary}\n` : "";
+  const text = `Hi ${input.name},\n\nWe received your FindNext ${input.plan} request (${input.cycle}) for ${input.amount}.${summary}${benefitText(input.benefits)}\nRequest ID: ${input.requestId}\n\nWe will send the confirmed payment instructions to this email. Never send an OTP, password or card details.\n\nFindNext support\nfindnext@ignyxx.in`;
+  return {
+    subject: `Your FindNext ${input.plan} plan request is confirmed`,
+    text,
+    html: shell(
+      `Your FindNext ${input.plan} plan request is safely recorded.`,
+      `Your ${input.plan} request is in our circle.`,
+      `<p style="color:#cbd5e1;line-height:1.75;margin:20px 0 0">Hi ${escapeHtml(input.name)}, we received your <strong>${escapeHtml(input.plan)}</strong> request for <strong>${escapeHtml(input.amount)}</strong> (${escapeHtml(input.cycle)}).</p>${input.summary ? `<p style="color:#cbd5e1;line-height:1.75">${escapeHtml(input.summary)}</p>` : ""}${benefitHtml(input.benefits)}<div style="margin:22px 0;padding:16px;border:1px solid #303b60;border-radius:12px;color:#c7d2fe;font-family:monospace">Request ${escapeHtml(input.requestId)}</div><p style="color:#cbd5e1;line-height:1.75">We will send the confirmed payment instructions to this email. Never share an OTP, password or card details.</p>`
+    ),
+  };
 }
 
 export function paymentInstructionsEmail(input: PlanEmailInput & { upiId: string }) {

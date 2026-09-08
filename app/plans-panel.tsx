@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Copy, Gift, Loader2, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import { Check, CircleCheckBig, Copy, Gift, Loader2, Mail, ShieldCheck, Sparkles, TriangleAlert, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 type BillingCycle = "28_days" | "annual";
 type Plan = "live" | "flex" | "care";
 type BillingData = { referral?: { code: string }; attribution?: { referral_code: string; status: string }; requests?: Array<{ id: string; plan: Plan; billing_cycle: BillingCycle; status: string; created_at: string }> };
+type PlanToast = { kind: "success" | "error"; title: string; message: string };
 
 const plans: Array<{ id: Plan; name: string; prices: Record<BillingCycle, number>; description: string; features: string[]; featured?: boolean }> = [
   { id: "live", name: "Live", prices: { "28_days": 50, annual: 499 }, description: "A polished portfolio that stays online.", features: ["Secure portfolio hosting", "Every template included", "Custom FindNext address"] },
@@ -28,6 +29,7 @@ export function PlansPanel({ email }: { email: string }) {
   const [referralInput, setReferralInput] = useState("");
   const [activationCode, setActivationCode] = useState("");
   const [notice, setNotice] = useState("");
+  const [planToast, setPlanToast] = useState<PlanToast | null>(null);
   const [working, setWorking] = useState<string | null>(null);
 
   const load = async () => {
@@ -44,17 +46,32 @@ export function PlansPanel({ email }: { email: string }) {
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
+  useEffect(() => {
+    if (!planToast) return;
+    const timer = window.setTimeout(() => setPlanToast(null), 9000);
+    return () => window.clearTimeout(timer);
+  }, [planToast]);
+
   const requestPlan = async (plan: Plan) => {
-    setWorking(plan); setNotice("");
+    setWorking(plan); setNotice(""); setPlanToast(null);
+    const selectedPlan = plans.find((item) => item.id === plan);
     try {
       const response = await fetch("/api/billing", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ plan, billingCycle: cycle, referralCode: referralInput }) });
       const result = await readResponse(response);
-      if (!response.ok) throw new Error(result.error || "Could not create the plan request.");
-      setNotice(result.acknowledgementSent ? "Request saved. We emailed you a confirmation; your email app is opening so you can reply to support." : "Request saved. Your email app is opening with the request details for support.");
+      if (!response.ok || result.acknowledgementSent !== true) throw new Error(result.error || "We could not email your plan details. Please try again.");
+      setPlanToast({
+        kind: "success",
+        title: `${selectedPlan?.name ?? "Plan"} request sent`,
+        message: "Your plan details are on their way. Please check your inbox and spam folder.",
+      });
       await load();
-      window.location.assign(result.mailto);
-    } catch (error) { setNotice(error instanceof Error ? error.message : "Could not request the plan."); }
-    finally { setWorking(null); }
+    } catch (error) {
+      setPlanToast({
+        kind: "error",
+        title: "Email could not be sent",
+        message: error instanceof Error ? error.message : "Please try again shortly.",
+      });
+    } finally { setWorking(null); }
   };
 
   const redeem = async () => {
@@ -83,5 +100,11 @@ export function PlansPanel({ email }: { email: string }) {
       <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"><div className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-indigo-600" /><h3 className="font-semibold">Activate after payment</h3></div><p className="mt-2 text-sm leading-6 text-slate-500">We email a private, single-use activation code after verifying payment.</p><div className="mt-4 flex gap-2"><Input value={activationCode} onChange={(event) => setActivationCode(event.target.value.toUpperCase())} placeholder="Activation code" /><Button onClick={redeem} disabled={!activationCode || Boolean(working)}>{working === "redeem" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Redeem"}</Button></div></section></div>
 
     <section className="rounded-2xl bg-slate-950 p-5 text-white sm:p-6"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 text-emerald-400" /><div><p className="font-semibold">You’re in our circle.</p><p className="mt-1 text-sm leading-6 text-slate-300">Your story stays yours. Private until you publish, free of ads, and supported by a real person.</p><a className="mt-3 inline-block text-sm font-semibold text-indigo-300" href={`mailto:findnext@ignyxx.in?subject=${encodeURIComponent(`FindNext support for ${email}`)}`}>findnext@ignyxx.in</a></div></div></section>
+
+    {planToast && <div role={planToast.kind === "error" ? "alert" : "status"} aria-live="polite" className={`fixed bottom-5 right-5 z-50 flex w-[min(390px,calc(100vw-2.5rem))] items-start gap-3 rounded-2xl border p-4 shadow-2xl backdrop-blur-xl ${planToast.kind === "success" ? "border-emerald-200 bg-emerald-50/95 text-emerald-950" : "border-rose-200 bg-rose-50/95 text-rose-950"}`}>
+      {planToast.kind === "success" ? <CircleCheckBig className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /> : <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />}
+      <div className="min-w-0 flex-1"><p className="font-semibold">{planToast.title}</p><p className="mt-1 text-sm leading-5 opacity-80">{planToast.message}</p></div>
+      <button type="button" onClick={() => setPlanToast(null)} className="rounded-lg p-1 opacity-60 transition hover:bg-black/5 hover:opacity-100" aria-label="Dismiss notification"><X className="h-4 w-4" /></button>
+    </div>}
   </div>;
 }
