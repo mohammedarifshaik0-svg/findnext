@@ -29,6 +29,7 @@ export function PlansPanel({ email }: { email: string }) {
   const [referralInput, setReferralInput] = useState("");
   const [activationCode, setActivationCode] = useState("");
   const [notice, setNotice] = useState("");
+  const [planToast, setPlanToast] = useState<PlanToast | null>(null);
   const [working, setWorking] = useState<string | null>(null);
 
   const load = async () => {
