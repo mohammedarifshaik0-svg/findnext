@@ -1,6 +1,6 @@
 import { isAuthorizedAdminRequest } from "@/lib/admin-auth";
 import { paymentInstructionsEmail } from "@/lib/email-templates";
-import { sendFindNextEmail } from "@/lib/email";
+import { sendVxlEmail } from "@/lib/email";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       upiId: process.env.FINDNEXT_UPI_ID,
     });
 
-    const delivery = await sendFindNextEmail(
+    const delivery = await sendVxlEmail(
       { to: planRequest.email, ...email },
       `payment-instructions-${planRequest.id}`,
     );

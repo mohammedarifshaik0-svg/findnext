@@ -1,6 +1,6 @@
 import { isAuthorizedAdminRequest } from "@/lib/admin-auth";
 import { activationCodeEmail } from "@/lib/email-templates";
-import { sendFindNextEmail } from "@/lib/email";
+import { sendVxlEmail } from "@/lib/email";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       expiresAt,
     });
 
-    const delivery = await sendFindNextEmail(
+    const delivery = await sendVxlEmail(
       { to: planRequest.email, ...email },
       `activation-${planRequest.id}`,
     );
