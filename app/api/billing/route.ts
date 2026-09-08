@@ -1,30 +1,29 @@
 import { createClient } from "@/lib/supabase/server";
 import { planRequestReceivedEmail } from "@/lib/email-templates";
 import { sendFindNextEmail } from "@/lib/email";
+import { PLAN_PRICES, type BillingCycle, type PaidPlan as Plan } from "@/lib/plans";
 
 const PRICES = {
-  live: { "28_days": 5000, annual: 49900 },
-  flex: { "28_days": 10000, annual: 99900 },
-  care: { "28_days": 25000, annual: 249900 },
+  live: { "28_days": PLAN_PRICES.live["28_days"] * 100, annual: PLAN_PRICES.live.annual * 100 },
+  flex: { "28_days": PLAN_PRICES.flex["28_days"] * 100, annual: PLAN_PRICES.flex.annual * 100 },
+  care: { "28_days": PLAN_PRICES.care["28_days"] * 100, annual: PLAN_PRICES.care.annual * 100 },
 } as const;
 
 const PLAN_EMAIL_DETAILS = {
   live: {
     summary: "Your polished portfolio stays securely online with every template included.",
-    benefits: ["Secure portfolio hosting", "Every template included", "Your FindNext portfolio address"],
+    benefits: ["Secure portfolio hosting", "Every template included", "2 published updates and 1 résumé re-import every 28 days"],
   },
   flex: {
     summary: "Keep your portfolio live while updating your professional story whenever it changes.",
-    benefits: ["Everything in Live", "Unlimited self-updates", "Saved revision history"],
+    benefits: ["Everything in Live", "Unlimited published updates", "5 résumé re-imports and 30 AI improvements every 28 days"],
   },
   care: {
-    summary: "Get the complete FindNext experience with hands-on support for important updates.",
-    benefits: ["Everything in Flex", "Managed update requests", "Custom-domain assistance"],
+    summary: "Get the complete VXL experience with hands-on support for important updates.",
+    benefits: ["Everything in Flex", "1 managed update every 28 days", "10 résumé re-imports and 60 AI improvements every 28 days"],
   },
 } as const;
 
-type Plan = keyof typeof PRICES;
-type BillingCycle = keyof typeof PRICES.live;
 
 async function authorized() {
   const supabase = await createClient();
@@ -40,7 +39,7 @@ export async function GET() {
   let { data: referral } = await supabase.from("referral_codes").select("code,is_active").eq("profile_id", userId).maybeSingle();
   if (!referral) {
     for (let attempt = 0; attempt < 3 && !referral; attempt += 1) {
-      const code = `FN-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+      const code = `VXL-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
       const created = await supabase.from("referral_codes").insert({ profile_id: userId, code }).select("code,is_active").single();
       if (!created.error) referral = created.data;
     }
@@ -57,7 +56,22 @@ export async function GET() {
   ]);
   const error = requestsError || attributionError || subscriptionError;
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  return Response.json({ referral, attribution, requests, subscription });
+  let usage = null;
+  if (subscription?.status === "active" && subscription.period_starts_at && subscription.period_ends_at) {
+    const start = new Date(subscription.period_starts_at).getTime();
+    const end = new Date(subscription.period_ends_at).getTime();
+    const now = Math.min(Date.now(), end);
+    const cycleMs = 28 * 86_400_000;
+    const cycleStartsAt = new Date(start + Math.max(0, Math.floor((now - start) / cycleMs)) * cycleMs);
+    const cycleEndsAt = new Date(Math.min(end, cycleStartsAt.getTime() + cycleMs));
+    const { data: events } = await supabase.from("subscription_usage_events").select("entitlement,units").eq("profile_id", userId).gte("occurred_at", cycleStartsAt.toISOString()).lt("occurred_at", cycleEndsAt.toISOString());
+    usage = { cycleStartsAt: cycleStartsAt.toISOString(), cycleEndsAt: cycleEndsAt.toISOString(), published_updates: 0, resume_reimports: 0, ai_improvements: 0 };
+    for (const event of events ?? []) {
+      const key = event.entitlement as keyof Pick<typeof usage, "published_updates" | "resume_reimports" | "ai_improvements">;
+      if (key in usage) usage[key] += Number(event.units) || 0;
+    }
+  }
+  return Response.json({ referral, attribution, requests, subscription, usage });
 }
 
 export async function POST(request: Request) {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2, Sparkles } from "lucide-react";
 
 function GoogleMark() {
   return (
@@ -27,7 +27,7 @@ export function AuthPanel() {
 
   useEffect(() => {
     const referral = new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase();
-    if (referral) window.localStorage.setItem("findnext_referral", referral);
+    if (referral) window.localStorage.setItem("vxl_referral", referral);
   }, []);
 
   const signInWithGoogle = async () => {
@@ -68,14 +68,27 @@ export function AuthPanel() {
   };
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#f4f6fb] px-6">
-      <section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_30px_100px_rgba(21,32,64,.12)] sm:p-12">
-        <div className="brand-mark">FN</div>
-        <p className="mt-8 text-sm font-semibold uppercase tracking-[.18em] text-indigo-600">FindNext</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-[-.04em] text-slate-950 sm:text-5xl">Your career, made visible.</h1>
-        <p className="mt-5 max-w-md text-lg leading-8 text-slate-600">Turn your résumé into a polished portfolio and keep every career detail ready for your next opportunity.</p>
+    <main className="relative grid min-h-screen overflow-hidden bg-[#f5f5f7] lg:grid-cols-[1.05fr_.95fr]">
+      <section className="relative hidden min-h-screen overflow-hidden bg-[#09090b] p-12 text-white lg:flex lg:flex-col lg:justify-between xl:p-16">
+        <div className="vxl-grid absolute inset-0 opacity-30" />
+        <div className="vxl-glow absolute -left-40 top-20 h-[520px] w-[520px]" />
+        <div className="relative flex items-center gap-3"><div className="vxl-mark">X</div><span className="text-xl font-extrabold tracking-[-.04em]">VXL</span></div>
+        <div className="relative max-w-xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.06] px-3 py-1.5 text-xs font-semibold text-zinc-300"><Sparkles className="h-3.5 w-3.5 text-[#ff6b6b]" />Résumé to portfolio, beautifully</div>
+          <h1 className="mt-7 text-6xl font-bold leading-[.98] tracking-[-.055em] xl:text-7xl">Your résumé,<br/><span className="vxl-gradient-text">reimagined.</span></h1>
+          <p className="mt-7 max-w-lg text-lg leading-8 text-zinc-400">VXL turns your experience into a portfolio with depth, personality and a story worth remembering.</p>
+          <div className="mt-9 grid gap-3 text-sm text-zinc-300 sm:grid-cols-2">{["All templates included", "Private until you publish", "Edit every imported detail", "No ads. Ever."].map((item)=><div key={item} className="flex items-center gap-2"><span className="grid h-5 w-5 place-items-center rounded-full bg-white/10"><Check className="h-3 w-3 text-emerald-400" /></span>{item}</div>)}</div>
+        </div>
+        <p className="relative text-xs text-zinc-600">We Excel. We Grow Together.</p>
+      </section>
+      <section className="grid min-h-screen place-items-center px-5 py-10 sm:px-10">
+        <div className="w-full max-w-md">
+          <div className="mb-10 flex items-center gap-3 lg:hidden"><div className="vxl-mark">X</div><span className="text-xl font-extrabold tracking-[-.04em]">VXL</span></div>
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-[#5f3cfe]">Welcome to your portfolio studio</p>
+          <h2 className="mt-3 text-4xl font-bold tracking-[-.045em] text-[#12121d]">Make your next move visible.</h2>
+          <p className="mt-3 text-sm leading-6 text-zinc-500">Start free. Your seven-day trial begins only when you publish.</p>
 
-        <Button className="mt-8 h-12 w-full border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50" variant="outline" onClick={signInWithGoogle} disabled={googleLoading || loading}>
+        <Button className="mt-8 h-12 w-full border-zinc-300 bg-white text-zinc-900 shadow-[0_8px_24px_rgba(15,23,42,.06)] hover:bg-zinc-50" variant="outline" onClick={signInWithGoogle} disabled={googleLoading || loading}>
           {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleMark />}
           Continue with Google
         </Button>
@@ -87,17 +100,18 @@ export function AuthPanel() {
         <div className="space-y-3">
           <Input className="h-12" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" />
           <Input className="h-12" type="password" autoComplete={mode === "signup" ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (minimum 8 characters)" />
-          <Button className="h-12 w-full" onClick={submit} disabled={loading || googleLoading || !email || password.length < 8}>
+          <Button className="h-12 w-full bg-gradient-to-r from-[#18181b] to-[#09090b] shadow-[0_10px_24px_rgba(0,0,0,.18)]" onClick={submit} disabled={loading || googleLoading || !email || password.length < 8}>
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             {mode === "signup" ? "Create my profile" : "Sign in"}
           </Button>
         </div>
 
-        {message && <p className="mt-4 rounded-xl bg-indigo-50 p-3 text-sm text-indigo-800" role="status">{message}</p>}
-        <button className="mt-5 text-sm font-semibold text-indigo-600" onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setMessage(""); }}>
+        {message && <p className="mt-4 rounded-xl border border-violet-100 bg-violet-50 p-3 text-sm text-violet-900" role="status">{message}</p>}
+        <button className="mt-5 text-sm font-semibold text-[#5f3cfe]" onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setMessage(""); }}>
           {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
         </button>
-        <p className="mt-5 text-sm leading-6 text-slate-500">Nothing is published until you review and approve it.</p>
+        <p className="mt-6 border-t border-zinc-200 pt-5 text-sm leading-6 text-zinc-500">Your data is saved securely. Nothing is public until you review and approve it.</p>
+        </div>
       </section>
     </main>
   );

@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     return Response.json({
       requests: (requests ?? []).map((item) => ({
         ...item,
-        full_name: names.get(item.profile_id) || "FindNext member",
+        full_name: names.get(item.profile_id) || "VXL member",
         activation: activation.get(item.id) ?? null,
       })),
     });

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { extractResumeText, parseResumeText } from "@/lib/resume-parser";
+import { assertResumeReimportAvailable, recordResumeReimport } from "@/lib/resume-entitlements";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,8 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({})) as { resumeId?: string };
   if (!body.resumeId) return Response.json({ error: "Choose a saved résumé." }, { status: 400 });
+  try { await assertResumeReimportAvailable(supabase, userId); }
+  catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Your résumé import allowance is not available." }, { status: 403 }); }
 
   const { data: resume, error: resumeError } = await supabase
     .from("resumes")
@@ -41,6 +44,7 @@ export async function POST(request: Request) {
     if (extractionError) throw extractionError;
     const { error: statusError } = await supabase.from("resumes").update({ parse_status: "review" }).eq("id", resume.id);
     if (statusError) throw statusError;
+    await recordResumeReimport(supabase, resume.id);
     console.info("resume.reparse.completed", { resumeId: resume.id, textLength: extractedText.length, experiences: parsedData.experiences.length, education: parsedData.education.length, items: parsedData.items.length });
     return Response.json({ ok: true, id: resume.id, name: resume.original_name, size: resume.size_bytes, status: "review", parsedData });
   } catch (parseError) {

@@ -61,7 +61,7 @@
   --destructive: #e7000b;
   --border: #e5e5e5;
   --input: #e5e5e5;
-  --ring: #6366f1;
+  --ring: #5f3cfe;
   --chart-1: #f54900;
   --chart-2: #009689;
   --chart-3: #104e64;
@@ -127,13 +127,22 @@ body {
 
 button, a, input, textarea { outline-offset: 3px; }
 
-.brand-mark {
+.brand-mark, .vxl-mark {
   display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 1rem;
-  color: white; font-size: .85rem; font-weight: 800; letter-spacing: -.04em;
-  background: linear-gradient(145deg, #111827 12%, #4f46e5 72%, #8b5cf6);
-  box-shadow: inset 0 1px rgba(255,255,255,.25), 0 10px 28px rgba(79,70,229,.22);
+  color: white; font-size: 1rem; font-weight: 900; letter-spacing: -.08em;
+  background: linear-gradient(180deg, #2e2e33, #141417 60%, #0a0a0d);
+  border: 1px solid rgba(255,255,255,.1);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,.08), 0 8px 20px rgba(0,0,0,.24);
 }
 .brand-mark.small { width: 2.35rem; height: 2.35rem; border-radius: .75rem; font-size: .7rem; }
+.vxl-mark { width: 2rem; height: 2rem; border-radius: .5rem; font-size: 1rem; }
+.vxl-gradient-text { color: transparent; background: linear-gradient(115deg,#ffffff 12%,#b9a8ff 48%,#ff6b6b 92%); background-clip:text; -webkit-background-clip:text; }
+.vxl-grid { background-image: linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px); background-size:40px 40px; mask-image:linear-gradient(to bottom,black,transparent 82%); }
+.vxl-glow { border-radius:999px; background:radial-gradient(circle,rgba(95,60,254,.34),rgba(255,107,107,.12) 45%,transparent 70%); filter:blur(20px); }
+.vxl-sidebar { background:linear-gradient(180deg,#0f0f12,#09090b); color:#d4d4d8; border-color:#27272a; }
+.vxl-sidebar .nav-item { color:#d4d4d8; }
+.vxl-sidebar .nav-item:hover { background:rgba(255,255,255,.06); color:#fff; }
+.vxl-sidebar .nav-item.active { background:rgba(255,255,255,.1); color:#fff; border-left:2px solid #fff; box-shadow:0 8px 18px rgba(0,0,0,.2); }
 .nav-item { display: flex; min-height: 2.75rem; align-items: center; gap: .65rem; border-radius: .75rem; padding: .65rem .75rem; text-align: left; font-size: .875rem; font-weight: 600; color: #64748b; transition: .18s ease; }
 .nav-item:hover { background: #f8fafc; color: #0f172a; }
 .nav-item.active { background: #eef2ff; color: #4338ca; }

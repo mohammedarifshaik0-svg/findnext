@@ -18,9 +18,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PLAN_LIMITS, PLAN_PRICES, PLANS, UNIVERSAL_BENEFITS, type BillingCycle, type PaidPlan as Plan } from "@/lib/plans";
 
-type BillingCycle = "28_days" | "annual";
-type Plan = "live" | "flex" | "care";
 type SubscriptionPlan = "trial" | Plan;
 type Subscription = {
   plan: SubscriptionPlan;
@@ -40,6 +39,13 @@ type BillingData = {
     created_at: string;
   }>;
   subscription?: Subscription | null;
+  usage?: {
+    cycleStartsAt: string;
+    cycleEndsAt: string;
+    published_updates: number;
+    resume_reimports: number;
+    ai_improvements: number;
+  } | null;
 };
 type PlanToast = {
   kind: "success" | "error";
@@ -50,50 +56,6 @@ type UpgradeConfirmation = {
   plan: Plan;
   periodEndsAt: string;
 };
-
-const plans: Array<{
-  id: Plan;
-  name: string;
-  prices: Record<BillingCycle, number>;
-  description: string;
-  features: string[];
-  featured?: boolean;
-}> = [
-  {
-    id: "live",
-    name: "Live",
-    prices: { "28_days": 50, annual: 499 },
-    description: "A polished portfolio that stays online.",
-    features: [
-      "Secure portfolio hosting",
-      "Every template included",
-      "Custom FindNext address",
-    ],
-  },
-  {
-    id: "flex",
-    name: "Flex",
-    prices: { "28_days": 100, annual: 999 },
-    description: "For people who keep their story moving.",
-    features: [
-      "Everything in Live",
-      "Unlimited self-updates",
-      "Saved revision history",
-    ],
-    featured: true,
-  },
-  {
-    id: "care",
-    name: "Care",
-    prices: { "28_days": 250, annual: 2499 },
-    description: "Hands-on help when you want us beside you.",
-    features: [
-      "Everything in Flex",
-      "Managed update requests",
-      "Custom-domain assistance",
-    ],
-  },
-];
 
 const planNames: Record<SubscriptionPlan, string> = {
   trial: "Free trial",
@@ -126,6 +88,7 @@ function remainingDays(value: string) {
 }
 
 export function PlansPanel({ email }: { email: string }) {
+  const [now] = useState(() => Date.now());
   const [cycle, setCycle] = useState<BillingCycle>("28_days");
   const [billing, setBilling] = useState<BillingData>({});
   const [referralInput, setReferralInput] = useState("");
@@ -143,7 +106,7 @@ export function PlansPanel({ email }: { email: string }) {
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      const savedReferral = window.localStorage.getItem("findnext_referral");
+      const savedReferral = window.localStorage.getItem("vxl_referral") ?? window.localStorage.getItem("findnext_referral");
       if (savedReferral) setReferralInput(savedReferral);
       void load();
     });
@@ -162,18 +125,18 @@ export function PlansPanel({ email }: { email: string }) {
       !subscription ||
       subscription.status !== "active" ||
       !subscription.period_ends_at ||
-      new Date(subscription.period_ends_at).getTime() <= Date.now()
+      new Date(subscription.period_ends_at).getTime() <= now
     ) {
       return null;
     }
     return subscription;
-  }, [billing.subscription]);
+  }, [billing.subscription, now]);
 
   const requestPlan = async (plan: Plan) => {
     setWorking(plan);
     setNotice("");
     setPlanToast(null);
-    const selectedPlan = plans.find((item) => item.id === plan);
+    const selectedPlan = PLANS.find((item) => item.id === plan);
 
     try {
       const response = await fetch("/api/billing", {
@@ -250,8 +213,16 @@ export function PlansPanel({ email }: { email: string }) {
   };
 
   const referralLink = billing.referral?.code
-    ? `https://findnext.vercel.app/?ref=${billing.referral.code}`
+    ? `${typeof window === "undefined" ? "https://findnext.vercel.app" : window.location.origin}/?ref=${billing.referral.code}`
     : "";
+
+  const usageRows = activeSubscription && activeSubscription.plan !== "trial"
+    ? [
+        { key: "published_updates" as const, label: "Published updates" },
+        { key: "resume_reimports" as const, label: "Résumé re-imports" },
+        { key: "ai_improvements" as const, label: "AI improvements" },
+      ]
+    : [];
 
   return (
     <div className="space-y-5">
@@ -268,7 +239,7 @@ export function PlansPanel({ email }: { email: string }) {
                     ACTIVE
                   </Badge>
                   <span className="text-sm font-semibold text-emerald-200">
-                    FindNext membership
+                    VXL membership
                   </span>
                 </div>
                 <h2 className="mt-2 text-2xl font-semibold tracking-[-.03em]">
@@ -289,6 +260,30 @@ export function PlansPanel({ email }: { email: string }) {
               </p>
             </div>
           </div>
+          {usageRows.length > 0 && (
+            <div className="mt-6 grid gap-3 border-t border-white/10 pt-5 md:grid-cols-3">
+              {usageRows.map(({ key, label }) => {
+                const limit = PLAN_LIMITS[activeSubscription.plan as Plan][key];
+                const used = billing.usage?.[key] ?? 0;
+                const remaining = limit === null ? null : Math.max(0, limit - used);
+                return (
+                  <div key={key} className="rounded-xl border border-white/10 bg-black/15 p-4">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="font-semibold text-white">{label}</span>
+                      <span className="text-emerald-200">{limit === null ? "Unlimited" : `${used}/${limit}`}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-emerald-100/70">
+                      {remaining === null ? "No usage limit" : `${remaining} remaining this cycle`}
+                    </p>
+                    {limit !== null && <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-emerald-300" style={{ width: `${Math.min(100, (used / limit) * 100)}%` }} /></div>}
+                  </div>
+                );
+              })}
+              <p className="text-xs text-emerald-100/70 md:col-span-3">
+                Allowances reset {billing.usage?.cycleEndsAt ? formatDate(billing.usage.cycleEndsAt) : "every 28 days"}. Failed imports never use an allowance.
+              </p>
+            </div>
+          )}
         </section>
       )}
 
@@ -327,7 +322,7 @@ export function PlansPanel({ email }: { email: string }) {
         </div>
 
         <div className="mt-7 grid gap-4 lg:grid-cols-3">
-          {plans.map((plan) => {
+          {PLANS.map((plan) => {
             const isCurrent = activeSubscription?.plan === plan.id;
             return (
               <article
@@ -356,7 +351,7 @@ export function PlansPanel({ email }: { email: string }) {
                 </p>
                 <div className="mt-4">
                   <span className="text-4xl font-semibold tracking-[-.05em]">
-                    ₹{plan.prices[cycle]}
+                    ₹{PLAN_PRICES[plan.id][cycle]}
                   </span>
                   <span className="text-sm text-slate-500">
                     /{cycle === "annual" ? "year" : "28 days"}
@@ -365,11 +360,12 @@ export function PlansPanel({ email }: { email: string }) {
                 <p className="mt-3 min-h-10 text-sm leading-5 text-slate-600">
                   {plan.description}
                 </p>
+                <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-xs leading-5 text-slate-600"><strong>Best for:</strong> {plan.bestFor}</p>
                 <ul className="mt-5 space-y-2">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 text-emerald-600" />
-                      {feature}
+                    <li key={feature.label} className={`flex gap-2 text-sm ${feature.included ? "text-slate-800" : "text-slate-400"}`}>
+                      {feature.included ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> : <X className="mt-0.5 h-4 w-4 shrink-0" />}
+                      <span><strong className="font-medium">{feature.label}</strong><span className="block text-xs leading-5 opacity-80">{feature.detail}</span></span>
                     </li>
                   ))}
                 </ul>
@@ -394,6 +390,14 @@ export function PlansPanel({ email }: { email: string }) {
         </div>
 
         <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-semibold text-slate-900">Included with every paid plan</p>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {UNIVERSAL_BENEFITS.map((benefit) => <div key={benefit} className="flex gap-2 text-sm text-slate-600"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />{benefit}</div>)}
+          </div>
+          <p className="mt-3 text-xs leading-5 text-slate-500">Limits apply only to the actions listed above. You can always edit and save drafts; on Live, publishing a saved draft uses one published update.</p>
+        </div>
+
+        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <label className="field">
             <span>Have a referral code? Get 10% off your first paid term.</span>
             <Input
@@ -401,7 +405,7 @@ export function PlansPanel({ email }: { email: string }) {
               onChange={(event) =>
                 setReferralInput(event.target.value.toUpperCase())
               }
-              placeholder="FN-XXXXXXXX"
+              placeholder="VXL-XXXXXXXX"
             />
           </label>
           <p className="mt-2 text-xs text-slate-500">
@@ -498,7 +502,7 @@ export function PlansPanel({ email }: { email: string }) {
             <a
               className="mt-3 inline-block text-sm font-semibold text-indigo-300"
               href={`mailto:findnext@ignyxx.in?subject=${encodeURIComponent(
-                `FindNext support for ${email}`,
+                `VXL support for ${email}`,
               )}`}
             >
               findnext@ignyxx.in
