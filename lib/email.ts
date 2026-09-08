@@ -16,7 +16,9 @@ export async function sendVxlEmail(email: Email, idempotencyKey: string) {
       method: "POST",
       headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json", "idempotency-key": idempotencyKey },
       body: JSON.stringify({
-        from: process.env.VXL_FROM_EMAIL || process.env.FINDNEXT_FROM_EMAIL || "VXL <hello@thevxl.com>",
+        // Keep the reliable sender as the fallback until the production API
+        // key is granted sending access for thevxl.com.
+        from: process.env.VXL_FROM_EMAIL || process.env.FINDNEXT_FROM_EMAIL || "VXL <findnext@ignyxx.in>",
         to: [email.to],
         reply_to: process.env.VXL_REPLY_TO_EMAIL || "findnext@ignyxx.in",
         subject: email.subject,
