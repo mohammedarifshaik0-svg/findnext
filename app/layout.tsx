@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FindNext — Portfolio Studio",
-  description: "Turn your résumé into a portfolio and keep your professional profile ready for what comes next.",
+  title: "VXL — Your résumé, reimagined",
+  description: "Turn your résumé into a story-led portfolio website. We Excel. We Grow Together.",
   other: {
     "codex-preview": "development",
   },
