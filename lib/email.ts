@@ -12,20 +12,34 @@ export async function sendVxlEmail(email: Email, idempotencyKey: string) {
 
   let response: Response;
   try {
-    response = await fetch("https://api.resend.com/emails", {
+    const payload = JSON.stringify({
+      from: process.env.VXL_FROM_EMAIL || process.env.FINDNEXT_FROM_EMAIL || "VXL <findnext@ignyxx.in>",
+      to: [email.to], reply_to: process.env.VXL_REPLY_TO_EMAIL || "findnext@ignyxx.in",
+      subject: email.subject, html: email.html, text: email.text,
+    });
+    const send = () => fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json", "idempotency-key": idempotencyKey },
-      body: JSON.stringify({
-        // Keep the reliable sender as the fallback until the production API
-        // key is granted sending access for thevxl.com.
-        from: process.env.VXL_FROM_EMAIL || process.env.FINDNEXT_FROM_EMAIL || "VXL <findnext@ignyxx.in>",
-        to: [email.to],
-        reply_to: process.env.VXL_REPLY_TO_EMAIL || "findnext@ignyxx.in",
-        subject: email.subject,
-        html: email.html,
-        text: email.text,
-      }),
+      body: payload,
+      signal: AbortSignal.timeout(5000),
     });
+    let last: Response | undefined;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        last = await send();
+        if (last.status !== 429 && last.status < 500) break;
+      } catch {
+        last = undefined;
+        if (attempt === 2) throw new Error("provider_unreachable");
+      }
+      if (attempt < 2) {
+        const retryAfter = Number(last?.headers.get("retry-after"));
+        if (retryAfter > 2) break; // Do not ignore the provider's longer backoff.
+        await new Promise(resolve => setTimeout(resolve, Math.max(500 * 2 ** attempt, retryAfter * 1000 || 0)));
+      }
+    }
+    if (!last) throw new Error("provider_unreachable");
+    response = last;
   } catch {
     console.error("[vxl-email] request_failed", { provider: "resend" });
     return { sent: false as const, reason: "provider_unreachable" as const };
