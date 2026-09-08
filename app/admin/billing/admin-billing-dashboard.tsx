@@ -89,7 +89,8 @@ export function AdminBillingDashboard({ adminEmail }: { adminEmail: string }) {
   }, []);
 
   useEffect(() => {
-    void load();
+    const task = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(task);
   }, [load]);
 
   useEffect(() => {
@@ -183,7 +184,7 @@ export function AdminBillingDashboard({ adminEmail }: { adminEmail: string }) {
           <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
             <div>
               <p className="text-xs font-bold uppercase tracking-[.24em] text-indigo-200">
-                FindNext private operations
+                VXL private operations
               </p>
               <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">
                 Payments, minus the chaos.
