@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +47,7 @@ export function AuthPanel() {
   const [authOpen, setAuthOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "dark";
-    return window.localStorage.getItem("vxl_ui_theme") === "light" ? "light" : "dark";
+    return window.localStorage.getItem("vxl_ui_theme") === "dark" ? "dark" : "light";
   });
 
   useEffect(() => {
@@ -136,10 +137,11 @@ export function AuthPanel() {
       <div className="vxl-section-heading"><span>SIMPLE, TRANSPARENT PLANS</span><h2>Start light. Grow when you need.</h2><p>All prices are for 28 days. Your seven-day trial starts only when you publish.</p></div>
       <div className="vxl-pricing-grid">{plans.map(plan=><article key={plan.name} className={plan.featured?"featured":""}>{plan.featured&&<div className="vxl-popular">MOST FLEXIBLE</div>}<span>{plan.name}</span><h3>{plan.price}<small>/28 days</small></h3><p>{plan.note}</p><ul>{plan.features.map(feature=><li key={feature}><Check/>{feature}</li>)}</ul><button className={plan.featured?"vxl-chrome-button":"vxl-quiet-button"} onClick={() => openAuth("signup")}>Choose {plan.name}<ArrowRight/></button></article>)}</div>
       <p className="vxl-pricing-note">Every plan includes every template, palette, typeface and effect. We charge for keeping your presence live—not for good taste.</p>
+      <p className="vxl-compliance-note">By purchasing a VXL plan, you agree to our <Link href="/terms">Terms &amp; Conditions</Link> and <Link href="/refund-policy">Refund &amp; Cancellation Policy</Link>.</p>
     </section>
 
     <section className="vxl-final-cta"><span>YOUR NEXT MOVE, VISIBLE</span><h2>Ready to excel?</h2><p>Bring the résumé. VXL will help you turn it into something people remember.</p><button className="vxl-chrome-button large" onClick={() => openAuth("signup")}>Create your portfolio <ArrowRight/></button></section>
-    <footer className="vxl-footer"><VxlLogo/><p>We Excel. We Grow Together.</p><div><a href="#templates">Templates</a><a href="#pricing">Pricing</a><a href="mailto:findnext@ignyxx.in">Support</a></div><small>© 2026 VXL. Private by default. Built without ads.</small></footer>
+    <footer className="vxl-footer"><VxlLogo/><p>We Excel. We Grow Together.</p><div className="vxl-footer-links"><span>Legal</span><Link href="/terms">Terms &amp; Conditions</Link><Link href="/privacy">Privacy Policy</Link><Link href="/refund-policy">Refund &amp; Cancellation Policy</Link><Link href="/contact">Contact Us</Link></div><small>© 2026 VXL. All rights reserved.</small></footer>
 
     {authOpen&&<div className="vxl-auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-title" onMouseDown={event=>{if(event.target===event.currentTarget)setAuthOpen(false)}}>
       <section className="vxl-auth-card"><button className="vxl-auth-close" onClick={()=>setAuthOpen(false)} aria-label="Close"><X/></button><VxlLogo/>
@@ -149,6 +151,7 @@ export function AuthPanel() {
         <div className="space-y-3"><Input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email address"/><Input type="password" autoComplete={mode==="signup"?"new-password":"current-password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password (minimum 8 characters)"/><Button className="vxl-auth-submit" onClick={submit} disabled={loading||googleLoading||!email||password.length<8}>{loading&&<Loader2 className="animate-spin"/>}{mode==="signup"?"Create my workspace":"Sign in to VXL"}<ArrowRight/></Button></div>
         {message&&<p className="vxl-auth-message" role="status">{message}</p>}
         <button className="vxl-auth-switch" onClick={()=>{setMode(mode==="signin"?"signup":"signin");setMessage("")}}>{mode==="signin"?"New to VXL? Create your workspace":"Already have a workspace? Sign in"}</button>
+        <p className="vxl-auth-legal">By continuing, you agree to VXL&apos;s <Link href="/terms">Terms &amp; Conditions</Link> and acknowledge the <Link href="/privacy">Privacy Policy</Link>.</p>
         <p className="vxl-auth-trust"><ShieldCheck/>Your data is private until you choose to publish.</p>
       </section>
     </div>}
