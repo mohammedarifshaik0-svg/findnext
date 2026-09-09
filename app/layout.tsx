@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./vxl-enhancements.css";
+import "./vxl-brand-v2.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevxl.com";
 
