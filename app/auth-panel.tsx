@@ -46,7 +46,7 @@ export function AuthPanel() {
   const [message, setMessage] = useState("");
   const [authOpen, setAuthOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
-    if (typeof window === "undefined") return "dark";
+    if (typeof window === "undefined") return "light";
     return window.localStorage.getItem("vxl_ui_theme") === "dark" ? "dark" : "light";
   });
 
