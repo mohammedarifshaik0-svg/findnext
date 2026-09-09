@@ -17,11 +17,11 @@ const PLAN_EMAIL_DETAILS = {
   },
   flex: {
     summary: "Keep your portfolio live while updating your professional story whenever it changes.",
-    benefits: ["Everything in Live", "Unlimited published updates", "5 résumé re-imports and 30 AI improvements every 28 days"],
+    benefits: ["Everything in Live", "Unlimited published updates", "5 résumé re-imports every 28 days"],
   },
   care: {
     summary: "Get the complete VXL experience with hands-on support for important updates.",
-    benefits: ["Everything in Flex", "1 managed update every 28 days", "10 résumé re-imports and 60 AI improvements every 28 days"],
+    benefits: ["Everything in Flex", "1 managed update every 28 days", "10 résumé re-imports every 28 days"],
   },
 } as const;
 

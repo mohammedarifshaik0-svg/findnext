@@ -220,7 +220,6 @@ export function PlansPanel({ email }: { email: string }) {
     ? [
         { key: "published_updates" as const, label: "Published updates" },
         { key: "resume_reimports" as const, label: "Résumé re-imports" },
-        { key: "ai_improvements" as const, label: "AI improvements" },
       ]
     : [];
 

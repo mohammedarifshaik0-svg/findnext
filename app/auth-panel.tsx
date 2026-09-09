@@ -31,9 +31,9 @@ const featureCards = [
   { icon: BarChart3, number: "06", title: "Know what connects", copy: "Understand how people discover and experience your portfolio as VXL grows with you." },
 ];
 const plans = [
-  { name: "Live", price: "₹99", note: "For a finished story that changes occasionally.", features: ["1 portfolio live", "2 published changes", "1 résumé re-import", "3 AI improvements"] },
-  { name: "Flex", price: "₹199", note: "For active careers that keep moving.", featured: true, features: ["Unlimited publishing", "5 résumé re-imports", "30 AI improvements", "Custom domain"] },
-  { name: "Care", price: "₹499", note: "For a premium result with a human beside you.", features: ["Everything in Flex", "10 résumé re-imports", "60 AI improvements", "1 managed update"] },
+  { name: "Live", price: "₹99", note: "For a finished story that changes occasionally.", features: ["1 portfolio live", "2 published changes", "1 résumé re-import"] },
+  { name: "Flex", price: "₹199", note: "For active careers that keep moving.", featured: true, features: ["Unlimited publishing", "5 résumé re-imports", "Custom domain"] },
+  { name: "Care", price: "₹499", note: "For a premium result with a human beside you.", features: ["Everything in Flex", "10 résumé re-imports", "1 managed update"] },
 ];
 
 export function AuthPanel() {
