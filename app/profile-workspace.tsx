@@ -67,7 +67,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
   const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [savedAt, setSavedAt] = useState<string | null>(null); const [notice, setNotice] = useState("");
   const [resume, setResume] = useState<{ id: string; original_name: string; parse_status: string } | null>(null); const [activeTab, setActiveTab] = useState("dashboard"); const fileRef = useRef<HTMLInputElement>(null); const photoRef = useRef<HTMLInputElement>(null); const contentRef = useRef<HTMLElement>(null);
   const [uiTheme, setUiTheme] = useState<"dark" | "light">(() => {
-    if (typeof window === "undefined") return "dark";
+    if (typeof window === "undefined") return "light";
     return window.localStorage.getItem("vxl_ui_theme") === "dark" ? "dark" : "light";
   });
 
