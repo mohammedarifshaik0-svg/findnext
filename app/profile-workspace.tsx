@@ -316,7 +316,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
           <TabsContent value="settings"><SettingsPanel email={account.email} onRestored={() => window.location.reload()} /></TabsContent>
         </Tabs>
       </section>
-      {previewVisible && <aside className="vxl-preview-column"><div className="vxl-preview-shell"><div className="vxl-preview-bar"><span><i/><i/><i/></span><div><p>Live preview</p><small>Updates as you type</small></div><Badge variant="outline">{templates.find((template) => template.id === data.theme)?.name ?? "Studio"}</Badge></div><PortfolioMiniPreview data={data}/></div></aside>}
+      {previewVisible && <aside className="vxl-preview-column"><div className="vxl-preview-shell"><div className="vxl-preview-bar"><span><i/><i/><i/></span><div><p>Live preview</p><small>Synced to {activeTab === "extras" ? "skills & work" : activeTab}</small></div><Badge variant="outline">{templates.find((template) => template.id === data.theme)?.name ?? "Studio"}</Badge></div><div className="vxl-preview-viewport"><PortfolioMiniPreview data={data} activeSection={activeTab}/></div></div></aside>}
     </div>
   </main>;
 }
