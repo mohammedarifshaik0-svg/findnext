@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       name: profile?.full_name || "there",
       requestId: planRequest.id,
       plan: String(planRequest.plan).toUpperCase(),
-      cycle: planRequest.billing_cycle === "annual" ? "annual" : "28 days",
+      cycle: planRequest.billing_cycle === "annual" ? "1 year" : "28 days",
       amount: `₹${Number(planRequest.amount_paise) / 100}`,
       upiId: process.env.FINDNEXT_UPI_ID,
     });
