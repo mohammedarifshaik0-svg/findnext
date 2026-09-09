@@ -6,9 +6,9 @@ const SUPPORT_EMAIL = "hello@thevxl.com";
 type PlanEmailInput = { name: string; requestId: string; plan: string; cycle: string; amount: string; summary?: string; benefits?: readonly string[] };
 
 const planBenefits: Record<string, readonly string[]> = {
-  LIVE: ["One portfolio hosted on your VXL address", "Every template, palette, typeface and visual effect", "2 published updates every 28 days", "1 résumé re-import every 28 days", "Lifetime visit total and latest published version"],
-  FLEX: ["Everything included in Live", "Unlimited published updates", "5 résumé re-imports every 28 days", "Detailed analytics and version history for 90 days", "Custom-domain connection and priority email support"],
-  CARE: ["Everything included in Flex", "10 résumé re-imports every 28 days", "Detailed analytics and version history for 1 year", "1 human-managed portfolio update every 28 days", "Custom-domain setup guidance and personal priority help"],
+  LIVE: ["One portfolio hosted on your VXL address", "Every template, palette, typeface and visual effect", "2 published updates and 1 résumé re-import every 28 days", "3 fact-checked AI writing improvements every 28 days", "Lifetime visit total and latest published version"],
+  FLEX: ["Everything included in Live", "Unlimited published updates and 5 résumé re-imports every 28 days", "30 fact-checked AI writing improvements every 28 days", "Detailed analytics and version history for 90 days", "Custom-domain connection and priority email support"],
+  CARE: ["Everything included in Flex", "10 résumé re-imports and 60 fact-checked AI improvements every 28 days", "Detailed analytics and version history for 1 year", "1 human-managed portfolio update every 28 days", "Custom-domain setup guidance and personal priority help"],
 };
 
 const safeBenefits = (input: PlanEmailInput) => input.benefits?.length ? input.benefits : planBenefits[input.plan.toUpperCase()] ?? [];
