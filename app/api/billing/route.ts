@@ -13,15 +13,12 @@ const PRICES = {
 const PLAN_EMAIL_DETAILS = {
   live: {
     summary: "Your polished portfolio stays securely online with every template included.",
-    benefits: ["Secure portfolio hosting", "Every template included", "2 published updates and 1 résumé re-import every 28 days"],
   },
   flex: {
     summary: "Keep your portfolio live while updating your professional story whenever it changes.",
-    benefits: ["Everything in Live", "Unlimited published updates", "5 résumé re-imports every 28 days"],
   },
   care: {
     summary: "Get the complete VXL experience with hands-on support for important updates.",
-    benefits: ["Everything in Flex", "1 managed update every 28 days", "10 résumé re-imports every 28 days"],
   },
 } as const;
 
@@ -103,7 +100,7 @@ export async function POST(request: Request) {
   }).select("id").single();
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  const cycleLabel = billingCycle === "annual" ? "annual" : "28-day";
+  const cycleLabel = billingCycle === "annual" ? "1 year" : "28 days";
   const amount = `₹${PRICES[plan][billingCycle] / 100}`;
   const acknowledgement = planRequestReceivedEmail({
     name: profile.full_name?.trim() || profile.email.split("@")[0],
