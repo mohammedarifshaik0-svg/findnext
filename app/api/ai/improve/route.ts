@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { APICallError, generateText } from "ai";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -72,11 +72,13 @@ export async function POST(request: Request) {
     const saved = await admin.rpc("vxl_ai_finish", { account_id: userId, request_id: id, output_text: suggestion, token_usage: JSON.parse(JSON.stringify({ generation: generated.usage, verification: verification.usage })) });
     if (saved.error || saved.data?.error) throw new Error("save_failed");
     return Response.json(saved.data);
-  } catch {
+  } catch (error) {
     const recovery = await admin.from("ai_writing_requests").select("id,field,source_text,result_text,status").eq("id", id).eq("profile_id", userId).maybeSingle();
     if (recovery.data?.status === "complete") return Response.json(recovery.data);
     await admin.from("ai_writing_requests").update({ status: "failed" }).eq("id", id).eq("profile_id", userId).eq("status", "pending");
-    console.error("[vxl-ai] generation_failed", { requestId: id });
-    return Response.json({ error: recovery.error ? "Could not confirm the result. Reload and check saved suggestions before retrying." : "AI could not produce a usable suggestion. No improvement was charged. Please try again shortly." }, { status: 503 });
+    const providerStatus = APICallError.isInstance(error) ? error.statusCode : null;
+    console.error("[vxl-ai] generation_failed", { requestId: id, providerStatus });
+    if (providerStatus === 402) return Response.json({ error: "The free AI allowance is temporarily exhausted. No improvement was charged, and VXL will not switch to paid AI automatically." }, { status: 503 });
+    return Response.json({ error: recovery.error ? "Could not confirm the result. Reload and check saved suggestions before retrying." : "AI could not produce a fact-safe suggestion. No improvement was charged. Please try again shortly." }, { status: 503 });
   }
 }
