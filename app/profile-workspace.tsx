@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { BarChart3, Camera, Check, ChevronRight, CircleDollarSign, Eye, FileText, LayoutDashboard, LayoutTemplate, Loader2, Moon, Plus, Save, Settings2, ShieldCheck, Sparkles, Sun, Trash2, Upload, UserRound, X } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, Camera, Check, ChevronRight, CircleDollarSign, Eye, FileText, GraduationCap, LayoutDashboard, LayoutTemplate, Loader2, Moon, Plus, Rocket, Save, Settings2, ShieldCheck, Sparkles, Sun, Trash2, Upload, UserRound, Wrench, X } from "lucide-react";
 import type { ParsedResume } from "@/lib/resume-parser";
 import { PlansPanel } from "@/app/plans-panel";
 import { PortfolioMiniPreview } from "@/app/portfolio-mini-preview";
@@ -65,10 +65,10 @@ const templates = [
 export function ProfileWorkspace({ account }: { account: { name: string; email: string } }) {
   const [data, setData] = useState<State>(() => defaultState(account));
   const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [savedAt, setSavedAt] = useState<string | null>(null); const [notice, setNotice] = useState("");
-  const [resume, setResume] = useState<{ id: string; original_name: string; parse_status: string } | null>(null); const [activeTab, setActiveTab] = useState("dashboard"); const fileRef = useRef<HTMLInputElement>(null); const photoRef = useRef<HTMLInputElement>(null);
+  const [resume, setResume] = useState<{ id: string; original_name: string; parse_status: string } | null>(null); const [activeTab, setActiveTab] = useState("dashboard"); const fileRef = useRef<HTMLInputElement>(null); const photoRef = useRef<HTMLInputElement>(null); const contentRef = useRef<HTMLElement>(null);
   const [uiTheme, setUiTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "dark";
-    return window.localStorage.getItem("vxl_ui_theme") === "light" ? "light" : "dark";
+    return window.localStorage.getItem("vxl_ui_theme") === "dark" ? "dark" : "light";
   });
 
   useEffect(() => { fetch("/api/profile").then(async (response) => { if (!response.ok) throw new Error("Could not load your profile."); return response.json(); }).then((result) => {
@@ -267,16 +267,29 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
     }
   };
   const addItem = (itemType: Item["itemType"]) => update("items", [...data.items, { id: uid("itm"), itemType, title: "", subtitle: "", description: "", url: "", level: "", issuedAt: "" }]);
+  const openTab = (tab: string) => {
+    setActiveTab(tab);
+    window.requestAnimationFrame(() => contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+  const editorTabs = [
+    { id: "profile", label: "Personal", icon: UserRound },
+    { id: "experience", label: "Experience", icon: BriefcaseBusiness },
+    { id: "education", label: "Education", icon: GraduationCap },
+    { id: "extras", label: "Skills & work", icon: Wrench },
+    { id: "publish", label: "Publish", icon: Rocket },
+  ];
+  const previewVisible = ["profile", "experience", "education", "extras", "templates", "publish"].includes(activeTab);
   if (loading) return <main className="vxl-studio-loading"><div className="vxl-logo-mark">X</div><Loader2 className="h-5 w-5 animate-spin" /><span>Preparing your studio</span></main>;
   return <main className={`vxl-workspace ${uiTheme === "dark" ? "is-dark" : "is-light"}`}>
     <header className="vxl-studio-header"><div className="flex items-center gap-3"><div className="vxl-logo-mark">X</div><div><p className="vxl-studio-wordmark">VXL</p><p className="vxl-studio-caption">Portfolio studio</p></div></div><div className="vxl-studio-actions"><span className="hidden text-xs md:inline">{savedAt ? `Saved at ${new Date(savedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Draft not saved yet"}</span><button className="vxl-studio-icon" onClick={() => { const next = uiTheme === "dark" ? "light" : "dark"; setUiTheme(next); window.localStorage.setItem("vxl_ui_theme", next); }} aria-label={`Switch to ${uiTheme === "dark" ? "light" : "dark"} theme`}>{uiTheme === "dark" ? <Sun/> : <Moon/>}</button><Button variant="outline" onClick={preview} disabled={saving}><Eye className="h-4 w-4" />Preview</Button><Button className="vxl-studio-primary" onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save draft</Button></div></header>
     <div className="vxl-studio-grid">
-      <aside className="vxl-studio-sidebar"><div className="vxl-sidebar-profile"><span>PROFILE STRENGTH</span><strong>{completion}%</strong><Progress value={completion}/><p>{completion === 100 ? "Ready to publish." : "Complete the highlighted details to publish."}</p></div><nav>{[{ id: "dashboard", icon: LayoutDashboard, label: "Dashboard" }, { id: "profile", icon: UserRound, label: "Portfolio editor" }, { id: "templates", icon: LayoutTemplate, label: "Templates" }, { id: "analytics", icon: BarChart3, label: "Analytics" }, { id: "plans", icon: CircleDollarSign, label: "Plans" }, { id: "settings", icon: Settings2, label: "Settings" }].map(({ id, icon: Icon, label }) => <button key={id} onClick={() => setActiveTab(id)} className={`nav-item ${activeTab === id ? "active" : ""}`}><Icon className="h-4 w-4" />{label}<ChevronRight className="ml-auto hidden h-4 w-4 xl:block" /></button>)}</nav><div className="vxl-sidebar-trust"><div><ShieldCheck className="h-4 w-4" />Private by default</div><p>Nothing is visible until you approve and publish.</p><a href="mailto:hello@thevxl.com">Talk to VXL support</a></div></aside>
-      <section className={`min-w-0 space-y-5 vxl-view-${activeTab}`}>
+      <aside className="vxl-studio-sidebar"><div className="vxl-sidebar-profile"><span>PROFILE STRENGTH</span><strong>{completion}%</strong><Progress value={completion}/><p>{completion === 100 ? "Ready to publish." : "Complete the highlighted details to publish."}</p></div><nav>{[{ id: "dashboard", icon: LayoutDashboard, label: "Dashboard" }, { id: "profile", icon: UserRound, label: "Portfolio editor" }, { id: "templates", icon: LayoutTemplate, label: "Templates" }, { id: "analytics", icon: BarChart3, label: "Analytics" }, { id: "plans", icon: CircleDollarSign, label: "Plans" }, { id: "settings", icon: Settings2, label: "Settings" }].map(({ id, icon: Icon, label }) => <button key={id} onClick={() => openTab(id)} className={`nav-item ${activeTab === id || (id === "profile" && ["experience", "education", "extras", "publish"].includes(activeTab)) ? "active" : ""}`}><Icon className="h-4 w-4" />{label}<ChevronRight className="ml-auto hidden h-4 w-4 xl:block" /></button>)}</nav><div className="vxl-sidebar-trust"><div><ShieldCheck className="h-4 w-4" />Private by default</div><p>Nothing is visible until you approve and publish.</p><a href="mailto:hello@thevxl.com">Talk to VXL support</a></div></aside>
+      <section ref={contentRef} className={`min-w-0 space-y-5 vxl-view-${activeTab}`}>
+        {["profile", "experience", "education", "extras", "publish"].includes(activeTab) && <nav className="vxl-editor-rail" aria-label="Portfolio sections">{editorTabs.map(({ id, label, icon: Icon }) => <button key={id} className={activeTab === id ? "active" : ""} onClick={() => openTab(id)}><Icon/><span>{label}</span></button>)}</nav>}
         <div className="vxl-import-panel"><div className="vxl-import-copy"><div><Badge>01 · IMPORT</Badge><span>Private workspace</span></div><h1>Start with what you’ve already built.</h1><p>Upload your résumé and VXL will shape the first draft. Every extracted field remains yours to review, rewrite or remove.</p></div><input ref={fileRef} className="hidden" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => uploadResume(e.target.files?.[0])}/><div className="vxl-import-actions">{resume && <Button variant="outline" onClick={reparseResume} disabled={saving}><Sparkles/>Read saved résumé</Button>}<Button className="vxl-studio-primary" onClick={() => fileRef.current?.click()} disabled={saving}><Upload/>{resume ? "Replace résumé" : "Upload & prefill"}</Button></div>{resume && <div className="vxl-resume-status"><div><FileText/></div><span><strong>{resume.original_name}</strong><small>{resume.parse_status === "review" || resume.parse_status === "complete" ? "Stored privately · Ready for review" : resume.parse_status === "failed" ? "Stored privately · Reading needs another attempt" : "Stored privately · Ready to read"}</small></span>{resume.parse_status === "review" || resume.parse_status === "complete" ? <Check/> : null}</div>}<p className="vxl-private-note"><ShieldCheck/>Nothing goes live until you review and publish it.</p></div>
         {notice && <div className="vxl-inline-notice"><Check className="h-4 w-4"/>{notice}</div>}
-        <Tabs value={activeTab} onValueChange={setActiveTab}><TabsList className="sr-only"><TabsTrigger value="dashboard">Dashboard</TabsTrigger><TabsTrigger value="profile">Profile</TabsTrigger><TabsTrigger value="experience">Experience</TabsTrigger><TabsTrigger value="education">Education</TabsTrigger><TabsTrigger value="extras">More</TabsTrigger><TabsTrigger value="templates">Templates</TabsTrigger><TabsTrigger value="publish">Publish</TabsTrigger><TabsTrigger value="analytics">Analytics</TabsTrigger><TabsTrigger value="plans">Plans</TabsTrigger><TabsTrigger value="settings">Settings</TabsTrigger></TabsList>
-          <TabsContent value="dashboard"><DashboardPanel name={data.fullName||account.name} headline={data.headline} isPublic={data.isPublic} completion={completion} slug={data.portfolioSlug} onOpen={setActiveTab}/></TabsContent>
+        <Tabs value={activeTab} onValueChange={openTab}><TabsList className="sr-only"><TabsTrigger value="dashboard">Dashboard</TabsTrigger><TabsTrigger value="profile">Profile</TabsTrigger><TabsTrigger value="experience">Experience</TabsTrigger><TabsTrigger value="education">Education</TabsTrigger><TabsTrigger value="extras">More</TabsTrigger><TabsTrigger value="templates">Templates</TabsTrigger><TabsTrigger value="publish">Publish</TabsTrigger><TabsTrigger value="analytics">Analytics</TabsTrigger><TabsTrigger value="plans">Plans</TabsTrigger><TabsTrigger value="settings">Settings</TabsTrigger></TabsList>
+          <TabsContent value="dashboard"><DashboardPanel name={data.fullName||account.name} headline={data.headline} isPublic={data.isPublic} completion={completion} slug={data.portfolioSlug} onOpen={openTab}/></TabsContent>
           <TabsContent value="profile"><Section title="Personal profile" description="The essentials recruiters see first.">
             <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:flex-row sm:items-center">
               <div className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-600 text-2xl font-bold text-white">
@@ -303,7 +316,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
           <TabsContent value="settings"><SettingsPanel email={account.email} onRestored={() => window.location.reload()} /></TabsContent>
         </Tabs>
       </section>
-      <aside className="vxl-preview-column"><div className="vxl-preview-shell"><div className="vxl-preview-bar"><span><i/><i/><i/></span><div><p>Live preview</p><small>Updates as you type</small></div><Badge variant="outline">{templates.find((template) => template.id === data.theme)?.name ?? "Studio"}</Badge></div><PortfolioMiniPreview data={data}/></div></aside>
+      {previewVisible && <aside className="vxl-preview-column"><div className="vxl-preview-shell"><div className="vxl-preview-bar"><span><i/><i/><i/></span><div><p>Live preview</p><small>Updates as you type</small></div><Badge variant="outline">{templates.find((template) => template.id === data.theme)?.name ?? "Studio"}</Badge></div><PortfolioMiniPreview data={data}/></div></aside>}
     </div>
   </main>;
 }
