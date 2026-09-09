@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   CalendarDays,
   Check,
@@ -411,6 +412,7 @@ export function PlansPanel({ email }: { email: string }) {
             We confirm your discounted payment total by email before you pay.
           </p>
         </div>
+        <p className="mt-5 text-center text-xs leading-5 text-slate-500">By purchasing a VXL plan, you agree to our <Link className="font-semibold underline underline-offset-4" href="/terms">Terms &amp; Conditions</Link> and <Link className="font-semibold underline underline-offset-4" href="/refund-policy">Refund &amp; Cancellation Policy</Link>. These are fixed-duration plans and do not renew automatically.</p>
       </section>
 
       {notice && (
