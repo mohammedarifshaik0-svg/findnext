@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const ALLOWED_TYPES = new Map([
   ["image/jpeg", "jpg"],
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
   });
   if (uploadError) return Response.json({ error: uploadError.message }, { status: 500 });
 
-  const { error: profileError } = await supabase.from("profiles").update({ photo_path: path, updated_at: new Date().toISOString() }).eq("id", userId);
+  const { error: profileError } = await createAdminClient().from("profiles").update({ photo_path: path, updated_at: new Date().toISOString() }).eq("id", userId);
   if (profileError) {
     await supabase.storage.from("profile-media").remove([path]);
     return Response.json({ error: profileError.message }, { status: 500 });
@@ -43,10 +44,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE() {
-  const { supabase, userId } = await authorized();
+  const { userId } = await authorized();
   if (!userId) return Response.json({ error: "Sign in to continue." }, { status: 401 });
   // Keep the object because the last published snapshot may still reference it.
-  const { error } = await supabase.from("profiles").update({ photo_path: null, updated_at: new Date().toISOString() }).eq("id", userId);
+  const { error } = await createAdminClient().from("profiles").update({ photo_path: null, updated_at: new Date().toISOString() }).eq("id", userId);
   if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json({ ok: true });
 }
