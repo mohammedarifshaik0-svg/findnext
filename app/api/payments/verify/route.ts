@@ -16,7 +16,7 @@ export async function POST(request:Request) {
   const limited=await checkRateLimit(user.id,"payment_verify"); if(limited) return limited;
   const raw=await request.text(); if(raw.length>2048) return new Response(null,{status:413});
   let body; try {body=JSON.parse(raw);} catch {return new Response(null,{status:400});}
-  if(typeof body.razorpay_order_id!=="string" || typeof body.razorpay_payment_id!=="string" || typeof body.razorpay_signature!=="string") return new Response(null,{status:400});
+  if(!body || typeof body!=="object" || Array.isArray(body) || typeof body.razorpay_order_id!=="string" || typeof body.razorpay_payment_id!=="string" || typeof body.razorpay_signature!=="string") return new Response(null,{status:400});
   try {
     const {mode,secret}=razorpayConfig();
     const {data:purchase}=await createAdminClient().from("payment_purchases").select("razorpay_order_id").eq("profile_id",user.id).eq("mode",mode).eq("razorpay_order_id",body.razorpay_order_id).maybeSingle();
