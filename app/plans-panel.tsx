@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PaymentCheckout } from "@/app/payment-checkout";
 import { PLAN_LIMITS, PLAN_PRICES, PLANS, UNIVERSAL_BENEFITS, type BillingCycle, type PaidPlan as Plan } from "@/lib/plans";
 
 type SubscriptionPlan = "trial" | Plan;
@@ -91,6 +92,7 @@ function remainingDays(value: string) {
 export function PlansPanel({ email }: { email: string }) {
   const [now] = useState(() => Date.now());
   const [cycle, setCycle] = useState<BillingCycle>("28_days");
+  const [checkout, setCheckout] = useState({enabled:false,test:false});
   const [billing, setBilling] = useState<BillingData>({});
   const [referralInput, setReferralInput] = useState("");
   const [activationCode, setActivationCode] = useState("");
@@ -110,6 +112,7 @@ export function PlansPanel({ email }: { email: string }) {
       const savedReferral = window.localStorage.getItem("vxl_referral") ?? window.localStorage.getItem("findnext_referral");
       if (savedReferral) setReferralInput(savedReferral);
       void load();
+      void fetch("/api/payments/orders",{cache:"no-store"}).then(response=>response.json()).then(result=>setCheckout({enabled:result.enabled===true,test:result.test===true})).catch(()=>{});
     });
     return () => window.cancelAnimationFrame(frame);
   }, [load]);
@@ -301,12 +304,14 @@ export function PlansPanel({ email }: { email: string }) {
               save with annual access.
             </p>
           </div>
-          <div className="inline-flex rounded-xl bg-slate-100 p-1">
+          <div className="inline-flex shrink-0 self-start rounded-xl bg-slate-100 p-1" role="group" aria-label="Billing period">
             <button
               className={`rounded-lg px-4 py-2 text-sm font-semibold ${
                 cycle === "28_days" ? "bg-white shadow-sm" : "text-slate-500"
               }`}
               onClick={() => setCycle("28_days")}
+              disabled={Boolean(working)}
+              aria-pressed={cycle === "28_days"}
             >
               28 days
             </button>
@@ -315,6 +320,8 @@ export function PlansPanel({ email }: { email: string }) {
                 cycle === "annual" ? "bg-white shadow-sm" : "text-slate-500"
               }`}
               onClick={() => setCycle("annual")}
+              disabled={Boolean(working)}
+              aria-pressed={cycle === "annual"}
             >
               Annual
             </button>
@@ -369,7 +376,7 @@ export function PlansPanel({ email }: { email: string }) {
                     </li>
                   ))}
                 </ul>
-                <Button
+                {checkout.enabled ? <PaymentCheckout key={`${plan.id}-${cycle}`} plan={plan.id} cycle={cycle} email={email} test={checkout.test} disabled={Boolean(working)} onBusy={busy=>setWorking(busy?plan.id:null)} onActivated={load} /> : <Button
                   className="mt-6 w-full"
                   variant={plan.featured && !isCurrent ? "default" : "outline"}
                   disabled={Boolean(working) || isCurrent}
@@ -383,7 +390,7 @@ export function PlansPanel({ email }: { email: string }) {
                     <Mail className="h-4 w-4" />
                   )}
                   {isCurrent ? "Active now" : `Request ${plan.name}`}
-                </Button>
+                </Button>}
               </article>
             );
           })}
