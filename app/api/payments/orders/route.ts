@@ -4,6 +4,13 @@ import { PLAN_PRICES, type PaidPlan, type BillingCycle } from "@/lib/plans";
 import { razorpayConfig, razorpayRequest } from "@/lib/razorpay";
 import { checkRateLimit } from "@/lib/rate-limit";
 
+export async function GET() {
+  try {
+    const {mode}=razorpayConfig();
+    return Response.json({enabled:mode==="test" || process.env.RAZORPAY_CHECKOUT_ENABLED==="true",test:mode==="test"},{headers:{"Cache-Control":"no-store"}});
+  } catch { return Response.json({enabled:false,test:false},{headers:{"Cache-Control":"no-store"}}); }
+}
+
 export async function POST(request:Request) {
   if(request.headers.get("origin") !== new URL(request.url).origin) return new Response(null,{status:403});
   const db=await createClient();
