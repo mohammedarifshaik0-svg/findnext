@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type Experience = { id?: string; company?: string; role?: string; location?: string; startDate?: string; endDate?: string; isCurrent?: boolean; description?: string };
 type Education = { id?: string; institution?: string; qualification?: string; field?: string; startDate?: string; endDate?: string; grade?: string; description?: string };
@@ -37,7 +38,9 @@ export async function PUT(request: Request) {
   const now = new Date().toISOString();
   const effectIntensity = Math.max(0, Math.min(100, Number.isFinite(payload.effectIntensity) ? Math.round(payload.effectIntensity!) : 65));
   const profile = { id: userId, full_name: clean(payload.fullName, 120), headline: clean(payload.headline, 180), professional_summary: clean(payload.professionalSummary), email: clean(payload.email, 180), phone: clean(payload.phone, 40), city: clean(payload.city, 100), country: clean(payload.country, 100), pronouns: clean(payload.pronouns, 40), portfolio_slug: clean(payload.portfolioSlug, 80), theme: clean(payload.theme, 30) || "studio", accent: clean(payload.accent, 30) || "champagne", text_tone: clean(payload.textTone, 30) || "ivory", effect_intensity: effectIntensity, is_public: current?.is_public ?? false, trial_started_at: current?.trial_started_at ?? null, trial_ends_at: current?.trial_ends_at ?? null, consent_profile_storage: true, consent_talent_discovery: Boolean(payload.consentTalentDiscovery), updated_at: now };
-  const { error: profileError } = await supabase.from("profiles").upsert(profile);
+  // Profile entitlement fields are not client-writable. This authenticated route
+  // performs the narrow server-side draft write after binding the row to userId.
+  const { error: profileError } = await createAdminClient().from("profiles").upsert(profile);
   if (profileError) return Response.json({ error: profileError.message }, { status: 500 });
   const { error: deleteError } = await supabase.from("experiences").delete().eq("profile_id", userId); if (deleteError) return Response.json({ error: deleteError.message }, { status: 500 });
   const [educationDelete, itemsDelete] = await Promise.all([
