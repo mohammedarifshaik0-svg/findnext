@@ -39,7 +39,7 @@ export async function sendVxlEmail(email: Email, idempotencyKey: string, options
   let response: Response;
   try {
     const payload = JSON.stringify({
-      from: process.env.VXL_FROM_EMAIL || process.env.FINDNEXT_FROM_EMAIL || "VXL <hello@thevxl.com>",
+      from: process.env.VXL_FROM_EMAIL || "VXL <hello@thevxl.com>",
       to: [email.to], reply_to: process.env.VXL_REPLY_TO_EMAIL || "hello@thevxl.com",
       subject: email.subject, html: email.html, text: email.text,
     });
