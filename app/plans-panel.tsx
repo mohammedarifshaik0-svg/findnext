@@ -48,6 +48,18 @@ type BillingData = {
     resume_reimports: number;
     ai_improvements: number;
   } | null;
+  purchases?: Array<{
+    id: string;
+    mode: "test" | "live";
+    plan: Plan;
+    billing_cycle: BillingCycle;
+    amount_paise: number;
+    currency: "INR";
+    status: "creating" | "created" | "failed" | "captured";
+    activated_at: string | null;
+    period_ends_at: string | null;
+    created_at: string;
+  }>;
 };
 type PlanToast = {
   kind: "success" | "error";
@@ -396,13 +408,13 @@ export function PlansPanel({ email }: { email: string }) {
           })}
         </div>
 
-        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        {!checkout.enabled && <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <p className="text-sm font-semibold text-slate-900">Included with every paid plan</p>
           <div className="mt-3 grid gap-2 md:grid-cols-2">
             {UNIVERSAL_BENEFITS.map((benefit) => <div key={benefit} className="flex gap-2 text-sm text-slate-600"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />{benefit}</div>)}
           </div>
           <p className="mt-3 text-xs leading-5 text-slate-500">Limits apply only to the actions listed above. You can always edit and save drafts; on Live, publishing a saved draft uses one published update.</p>
-        </div>
+        </div>}
 
         <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <label className="field">
@@ -438,10 +450,7 @@ export function PlansPanel({ email }: { email: string }) {
             <Gift className="h-5 w-5 text-indigo-600" />
             <h3 className="font-semibold">Your referral circle</h3>
           </div>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            Your friend saves 10% on their first paid term. You receive 30 extra
-            live days after their payment is verified.
-          </p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">{checkout.enabled ? "Referral rewards are paused while secure checkout is being introduced. Your existing code remains saved." : "Your friend saves 10% on their first paid term. You receive 30 extra live days after their payment is verified."}</p>
           <div className="mt-4 flex gap-2">
             <Input
               readOnly
@@ -470,11 +479,10 @@ export function PlansPanel({ email }: { email: string }) {
         <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-indigo-600" />
-            <h3 className="font-semibold">Activate after payment</h3>
+            <h3 className="font-semibold">{checkout.enabled ? "Promo or complimentary code" : "Activate after payment"}</h3>
           </div>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            We email a private, single-use activation code after verifying
-            payment.
+            {checkout.enabled ? "Payment purchases activate automatically. Enter a private code here only when VXL support provides one." : "We email a private, single-use activation code after verifying payment."}
           </p>
           <div className="mt-4 flex gap-2">
             <Input
@@ -497,6 +505,17 @@ export function PlansPanel({ email }: { email: string }) {
           </div>
         </section>
       </div>
+
+      {billing.purchases && billing.purchases.length > 0 && <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+        <h3 className="font-semibold">Payment history</h3>
+        <p className="mt-1 text-sm text-slate-500">Razorpay payments and their verified VXL status. Test payments never activate a real plan.</p>
+        <div className="mt-4 divide-y divide-slate-100">
+          {billing.purchases.map((purchase) => <div key={purchase.id} className="flex flex-col gap-2 py-4 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
+            <div><p className="text-sm font-semibold">{planNames[purchase.plan]} · {purchase.billing_cycle === "annual" ? "1 year" : "28 days"}</p><p className="mt-1 text-xs text-slate-500">{formatDate(purchase.created_at)} · {purchase.mode === "test" ? "Test payment" : "Razorpay payment"}</p></div>
+            <div className="sm:text-right"><p className="text-sm font-semibold">₹{(purchase.amount_paise / 100).toLocaleString("en-IN")}</p><p className={`mt-1 text-xs font-semibold ${purchase.status === "captured" ? "text-emerald-700" : purchase.status === "failed" ? "text-red-600" : "text-amber-700"}`}>{purchase.status === "captured" ? purchase.mode === "test" ? "Test verified" : "Plan activated" : purchase.status === "failed" ? "Failed" : "Pending"}</p></div>
+          </div>)}
+        </div>
+      </section>}
 
       <section className="rounded-2xl bg-slate-950 p-5 text-white sm:p-6">
         <div className="flex items-start gap-3">

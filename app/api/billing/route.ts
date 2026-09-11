@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { planRequestReceivedEmail } from "@/lib/email-templates";
 import { sendVxlEmail } from "@/lib/email";
@@ -33,6 +34,7 @@ async function authorized() {
 export async function GET() {
   const { supabase, userId } = await authorized();
   if (!userId) return Response.json({ error: "Sign in to continue." }, { status: 401 });
+  const admin = createAdminClient();
 
   let { data: referral } = await supabase.from("referral_codes").select("code,is_active").eq("profile_id", userId).maybeSingle();
   if (!referral) {
@@ -47,12 +49,14 @@ export async function GET() {
     { data: requests, error: requestsError },
     { data: attribution, error: attributionError },
     { data: subscription, error: subscriptionError },
+    { data: purchases, error: purchasesError },
   ] = await Promise.all([
     supabase.from("plan_requests").select("id,plan,billing_cycle,amount_paise,status,created_at").eq("profile_id", userId).order("created_at", { ascending: false }).limit(5),
     supabase.from("referral_attributions").select("referral_code,status").eq("referred_profile_id", userId).maybeSingle(),
     supabase.from("subscriptions").select("plan,status,period_starts_at,period_ends_at,updated_at").eq("profile_id", userId).maybeSingle(),
+    admin.from("payment_purchases").select("id,mode,plan,billing_cycle,amount_paise,currency,status,activated_at,period_ends_at,created_at").eq("profile_id", userId).order("created_at", { ascending: false }).limit(10),
   ]);
-  const error = requestsError || attributionError || subscriptionError;
+  const error = requestsError || attributionError || subscriptionError || purchasesError;
   if (error) return Response.json({ error: error.message }, { status: 500 });
   let usage = null;
   if (subscription?.status === "active" && subscription.period_starts_at && subscription.period_ends_at) {
@@ -69,7 +73,7 @@ export async function GET() {
       if (key in usage) usage[key] += Number(event.units) || 0;
     }
   }
-  return Response.json({ referral, attribution, requests, subscription, usage });
+  return Response.json({ referral, attribution, requests, subscription, usage, purchases });
 }
 
 export async function POST(request: Request) {
