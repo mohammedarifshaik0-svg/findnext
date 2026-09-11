@@ -2,6 +2,8 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const limits = {
+  payment_order: [6, 3600],
+  payment_verify: [30, 900],
   plan_request: [6, 3600],
   resume_import: [12, 3600],
   code_redemption: [10, 900],

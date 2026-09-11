@@ -1,7 +1,13 @@
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character] ?? character);
 
 const SITE_URL = "https://www.thevxl.com";
-const SUPPORT_EMAIL = "hello@thevxl.com";
+const SUPPORT_EMAIL = "support@thevxl.com";
+
+export function purchaseActivatedEmail(plan: string, purchaseId: string) {
+  const text = `Your VXL ${plan} plan is active.\n\nOpen ${SITE_URL} to view your plan, expiry and usage allowances. No activation code is needed. This is a fixed-term purchase with no automatic renewal.\n\nPurchase: ${purchaseId}\nRazorpay sends your payment receipt separately.\nBilling questions: payments@thevxl.com`;
+  return { subject: `Your VXL ${plan} plan is active`, text,
+    html: shell(`Your VXL ${plan} plan is active.`, "PLAN ACTIVATED", `Welcome to ${escapeHtml(plan)}.`, `<p>Your payment has been verified and your plan is active. No activation code is needed.</p><p><a href="${SITE_URL}">Open your VXL dashboard</a> to see your expiry and usage allowances.</p><p>No automatic renewal. Razorpay sends your payment receipt separately.</p><p>Purchase: ${escapeHtml(purchaseId)}</p><p>Questions? <a href="mailto:payments@thevxl.com">payments@thevxl.com</a></p>`) };
+}
 
 type PlanEmailInput = { name: string; requestId: string; plan: string; cycle: string; amount: string; summary?: string; benefits?: readonly string[] };
 
