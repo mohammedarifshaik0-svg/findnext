@@ -48,6 +48,6 @@ export async function DELETE() {
   if (!userId) return Response.json({ error: "Sign in to continue." }, { status: 401 });
   // Keep the object because the last published snapshot may still reference it.
   const { error } = await createAdminClient().from("profiles").update({ photo_path: null, updated_at: new Date().toISOString() }).eq("id", userId);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return Response.json({ error: "Could not remove the photo right now." }, { status: 503 });
   return Response.json({ ok: true });
 }

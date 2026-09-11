@@ -16,7 +16,7 @@ async function authorized() {
 export async function GET() {
   const { supabase, userId } = await authorized(); if (!userId) return Response.json({ error: "Sign in to continue." }, { status: 401 });
   const { data: profile, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return Response.json({ error: "Could not load your portfolio right now." }, { status: 503 });
   if (!profile) return Response.json({ profile: null, experiences: [], education: [], items: [], resumes: [] });
   const [experiences, education, items, resumes, subscription, extraction] = await Promise.all([
     supabase.from("experiences").select("*").eq("profile_id", userId).order("sort_order"),
@@ -41,20 +41,20 @@ export async function PUT(request: Request) {
   // Profile entitlement fields are not client-writable. This authenticated route
   // performs the narrow server-side draft write after binding the row to userId.
   const { error: profileError } = await createAdminClient().from("profiles").upsert(profile);
-  if (profileError) return Response.json({ error: profileError.message }, { status: 500 });
-  const { error: deleteError } = await supabase.from("experiences").delete().eq("profile_id", userId); if (deleteError) return Response.json({ error: deleteError.message }, { status: 500 });
+  if (profileError) return Response.json({ error: "Could not save your portfolio right now." }, { status: 503 });
+  const { error: deleteError } = await supabase.from("experiences").delete().eq("profile_id", userId); if (deleteError) return Response.json({ error: "Could not save your portfolio sections." }, { status: 503 });
   const [educationDelete, itemsDelete] = await Promise.all([
     supabase.from("education").delete().eq("profile_id", userId),
     supabase.from("profile_items").delete().eq("profile_id", userId),
   ]);
   const relatedDeleteError = educationDelete.error || itemsDelete.error;
-  if (relatedDeleteError) return Response.json({ error: relatedDeleteError.message }, { status: 500 });
+  if (relatedDeleteError) return Response.json({ error: "Could not save your portfolio sections." }, { status: 503 });
   const experiences = (payload.experiences ?? []).slice(0, 30).map((row, i) => ({ id: clean(row.id, 80) || crypto.randomUUID(), profile_id: userId, company: clean(row.company, 160), role: clean(row.role, 160), location: clean(row.location, 120), start_date: clean(row.startDate, 20), end_date: clean(row.endDate, 20), is_current: Boolean(row.isCurrent), description: clean(row.description), sort_order: i }));
   const education = (payload.education ?? []).slice(0, 20).map((row, i) => ({ id: clean(row.id, 80) || crypto.randomUUID(), profile_id: userId, institution: clean(row.institution, 180), qualification: clean(row.qualification, 160), field: clean(row.field, 160), start_date: clean(row.startDate, 20), end_date: clean(row.endDate, 20), grade: clean(row.grade, 80), description: clean(row.description), sort_order: i }));
   const allowed = new Set(["skill", "project", "achievement", "certification", "language", "link"]);
   const items = (payload.items ?? []).slice(0, 100).map((row, i) => ({ id: clean(row.id, 80) || crypto.randomUUID(), profile_id: userId, item_type: allowed.has(clean(row.itemType, 30)) ? clean(row.itemType, 30) : "skill", title: clean(row.title, 180), subtitle: clean(row.subtitle, 180), description: clean(row.description), url: clean(row.url, 500), level: clean(row.level, 80), issued_at: clean(row.issuedAt, 20), sort_order: i }));
   const inserts = await Promise.all([experiences.length ? supabase.from("experiences").insert(experiences) : Promise.resolve({ error: null }), education.length ? supabase.from("education").insert(education) : Promise.resolve({ error: null }), items.length ? supabase.from("profile_items").insert(items) : Promise.resolve({ error: null })]);
-  const insertError = inserts.find((result) => result.error)?.error; if (insertError) return Response.json({ error: insertError.message }, { status: 500 });
+  const insertError = inserts.find((result) => result.error)?.error; if (insertError) return Response.json({ error: "Could not save your portfolio sections." }, { status: 503 });
   const { error: revisionError } = await supabase.from("profile_revisions").insert({ profile_id: userId, changed_by: userId, change_type: current ? "profile_updated" : "profile_created", snapshot_json: payload });
   if (revisionError) return Response.json({ error: revisionError.message }, { status: 500 });
   return Response.json({ ok: true, profileId: userId, savedAt: now, isPublic: profile.is_public });

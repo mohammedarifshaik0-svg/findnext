@@ -20,10 +20,10 @@ export async function POST(request: Request) {
   if (file.size > 5 * 1024 * 1024) return Response.json({ error: "The maximum file size is 5 MB." }, { status: 413 });
   const id = crypto.randomUUID(); const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-"); const storagePath = `${userId}/${id}/${safeName}`;
   const { error: uploadError } = await supabase.storage.from("resumes").upload(storagePath, file, { contentType: file.type, upsert: false });
-  if (uploadError) return Response.json({ error: uploadError.message }, { status: 500 });
+  if (uploadError) return Response.json({ error: "Could not upload the résumé right now." }, { status: 503 });
   await supabase.from("resumes").update({ is_primary: false }).eq("profile_id", userId);
   const { error } = await supabase.from("resumes").insert({ id, profile_id: userId, storage_path: storagePath, original_name: file.name, content_type: file.type, size_bytes: file.size, parse_status: "processing", is_primary: true });
-  if (error) { await supabase.storage.from("resumes").remove([storagePath]); return Response.json({ error: error.message }, { status: 500 }); }
+  if (error) { await supabase.storage.from("resumes").remove([storagePath]); return Response.json({ error: "Could not save the résumé right now." }, { status: 503 }); }
 
   try {
     console.info("resume.parse.started", { resumeId: id, contentType: file.type, sizeBytes: file.size });
