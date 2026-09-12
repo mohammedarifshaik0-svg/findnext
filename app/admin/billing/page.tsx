@@ -3,6 +3,7 @@ import { getAdminSession } from "@/lib/admin-auth";
 import { AdminBillingDashboard } from "./admin-billing-dashboard";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "VXL Operations", robots: { index: false, follow: false } };
 
 export default async function AdminBillingPage() {
   const session = await getAdminSession();
