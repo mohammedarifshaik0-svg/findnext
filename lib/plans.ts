@@ -5,6 +5,7 @@ export type PlanFeature = {
   label: string;
   detail: string;
   included: boolean;
+  comingSoon?: boolean;
 };
 
 export const PLAN_PRICES: Record<PaidPlan, Record<BillingCycle, number>> = {
@@ -60,7 +61,7 @@ export const PLANS: Array<{
       { label: "AI writing", detail: "30 fact-checked improvements every 28 days", included: true },
       { label: "Analytics", detail: "Detailed insights for 90 days", included: true },
       { label: "Version history", detail: "Restore versions from 90 days", included: true },
-      { label: "Custom domain", detail: "Connection available", included: true },
+      { label: "Custom domain", detail: "Connection workflow is being built", included: false, comingSoon: true },
       { label: "Priority support", detail: "Faster email support", included: true },
       { label: "Managed updates", detail: "Not included", included: false },
     ],
@@ -72,13 +73,13 @@ export const PLANS: Array<{
     description: "The full VXL experience with a real person beside you.",
     bestFor: "People who want the result without managing every detail.",
     features: [
-      { label: "Everything in Flex", detail: "Unlimited publishing and domains", included: true },
+      { label: "All current Flex features", detail: "Unlimited publishing and advanced tools", included: true },
       { label: "Résumé re-imports", detail: "10 every 28 days", included: true },
       { label: "AI writing", detail: "60 fact-checked improvements every 28 days", included: true },
       { label: "Analytics", detail: "Detailed insights for 1 year", included: true },
       { label: "Version history", detail: "Restore versions from 1 year", included: true },
       { label: "Managed update", detail: "1 request every 28 days", included: true },
-      { label: "Domain setup help", detail: "We guide the connection", included: true },
+      { label: "Custom domain setup", detail: "Guided connection is being built", included: false, comingSoon: true },
       { label: "Personal priority help", detail: "Real human support", included: true },
     ],
   },
