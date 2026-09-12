@@ -528,11 +528,11 @@ export function PlansPanel({ email }: { email: string }) {
             </p>
             <a
               className="mt-3 inline-block text-sm font-semibold text-indigo-300"
-              href={`mailto:findnext@ignyxx.in?subject=${encodeURIComponent(
+              href={`mailto:hello@thevxl.com?subject=${encodeURIComponent(
                 `VXL support for ${email}`,
               )}`}
             >
-              findnext@ignyxx.in
+              hello@thevxl.com
             </a>
           </div>
         </div>
