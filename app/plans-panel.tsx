@@ -325,7 +325,8 @@ export function PlansPanel({ email }: { email: string }) {
               disabled={Boolean(working)}
               aria-pressed={cycle === "28_days"}
             >
-              28 days
+              Monthly
+              <span className="block text-[10px] font-medium opacity-65">28 days</span>
             </button>
             <button
               className={`rounded-lg px-4 py-2 text-sm font-semibold ${
@@ -336,6 +337,7 @@ export function PlansPanel({ email }: { email: string }) {
               aria-pressed={cycle === "annual"}
             >
               Annual
+              <span className="block text-[10px] font-medium opacity-65">Best value</span>
             </button>
           </div>
         </div>

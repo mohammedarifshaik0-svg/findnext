@@ -95,7 +95,7 @@ function ExternalLinks({ links, className }: { links: Row[]; className: string }
   );
 }
 
-function EditorialTemplate({ data }: { data: PortfolioData }) {
+function EditorialTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark: boolean }) {
   const { profile, experiences, education, items } = data;
   const { skills, projects, achievements, links, extras } = groups(items);
   const name = value(profile.full_name);
@@ -285,13 +285,13 @@ function EditorialTemplate({ data }: { data: PortfolioData }) {
         <div className="mt-12 flex justify-center">
           <ExternalLinks links={links} className="text-[#8d96b0] hover:text-[#dfba86]" />
         </div>
-        <p className="mt-16 text-xs text-[#59617a]">Made with VXL</p>
+        {showWordmark && <p className="mt-16 text-xs text-[#59617a]">Made with VXL</p>}
       </footer>
     </main>
   );
 }
 
-function PrismTemplate({ data }: { data: PortfolioData }) {
+function PrismTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark: boolean }) {
   const { profile, experiences, education, items } = data;
   const { skills, projects, achievements, links } = groups(items);
   const name = value(profile.full_name);
@@ -464,18 +464,18 @@ function PrismTemplate({ data }: { data: PortfolioData }) {
           <div className="mt-9 flex justify-center">
             <PortfolioActions profile={profile} tone="dark" />
           </div>
-          <p className="mt-16 text-xs text-slate-700">Made with VXL</p>
+          {showWordmark && <p className="mt-16 text-xs text-slate-700">Made with VXL</p>}
         </div>
       </footer>
     </main>
   );
 }
 
-function ZenTemplate({ data }: { data: PortfolioData }) {
+function ZenTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark: boolean }) {
   const { profile, experiences, education, items } = data;
   const { skills, projects, achievements, links } = groups(items);
   const name = value(profile.full_name);
-  const isLight = value(profile.theme) === "mono-brutalist";
+  const isLight = ["mono-brutalist", "mono-paper"].includes(value(profile.theme));
   const line = "border-[color:color-mix(in_srgb,var(--portfolio-text)_18%,transparent)]";
   return (
     <main className="portfolio-surface min-h-screen bg-[var(--portfolio-bg)] text-[var(--portfolio-text)] [font-family:'Helvetica_Neue',Arial,sans-serif]" style={portfolioStyle(value(profile.theme) || "ledger", value(profile.accent), Number(profile.effect_intensity ?? 65), value(profile.text_tone))}>
@@ -613,15 +613,15 @@ function ZenTemplate({ data }: { data: PortfolioData }) {
         <div className="mt-9 flex justify-center">
           <PortfolioActions profile={profile} tone={isLight ? "light" : "dark"} />
         </div>
-        <p className="mt-20 text-xs text-[var(--portfolio-muted)]">Made with VXL</p>
+        {showWordmark && <p className="mt-20 text-xs text-[var(--portfolio-muted)]">Made with VXL</p>}
       </footer>
     </main>
   );
 }
 
-export function PortfolioTemplate({ data }: { data: PortfolioData }) {
+export function PortfolioTemplate({ data, showWordmark = true }: { data: PortfolioData; showWordmark?: boolean }) {
   const theme = value(data.profile.theme);
-  if (["canvas", "mono-chrome", "mono-glass"].includes(theme)) return <PrismTemplate data={data} />;
-  if (["ledger", "mono-brutalist", "mono-editorial"].includes(theme)) return <ZenTemplate data={data} />;
-  return <EditorialTemplate data={data} />;
+  if (["canvas", "mono-chrome", "mono-glass"].includes(theme)) return <PrismTemplate data={data} showWordmark={showWordmark} />;
+  if (["ledger", "mono-brutalist", "mono-editorial", "mono-paper"].includes(theme)) return <ZenTemplate data={data} showWordmark={showWordmark} />;
+  return <EditorialTemplate data={data} showWordmark={showWordmark} />;
 }

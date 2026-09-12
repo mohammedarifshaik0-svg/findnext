@@ -1,0 +1,169 @@
+.vxl-process-visual {
+  position: relative;
+  height: 11rem;
+  flex-direction: column;
+  gap: .55rem;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 15%, color-mix(in srgb, var(--vxl-text) 12%, transparent), transparent 45%),
+    linear-gradient(145deg, var(--vxl-panel), var(--vxl-panel-2));
+}
+.vxl-process-visual::after {
+  content: "";
+  position: absolute;
+  inset: auto -20% -45% 35%;
+  height: 9rem;
+  border: 1px solid var(--vxl-line);
+  border-radius: 50%;
+  opacity: .7;
+}
+.vxl-process-visual > svg {
+  width: 1.45rem;
+  height: 1.45rem;
+  color: var(--vxl-text);
+}
+.vxl-process-visual > strong {
+  font-size: .85rem;
+  letter-spacing: -.02em;
+}
+.vxl-process-visual > small {
+  color: var(--vxl-muted);
+  font-size: .62rem;
+  letter-spacing: .04em;
+}
+
+.vxl-billing-toggle {
+  display: flex;
+  width: fit-content;
+  margin: -1.5rem auto 2.5rem;
+  padding: .3rem;
+  border: 1px solid var(--vxl-line);
+  border-radius: .8rem;
+  background: var(--vxl-panel);
+}
+.vxl-billing-toggle button {
+  min-width: 9rem;
+  padding: .65rem 1rem;
+  border-radius: .55rem;
+  color: var(--vxl-muted);
+  font-size: .72rem;
+  font-weight: 750;
+  transition: .2s ease;
+}
+.vxl-billing-toggle button small {
+  display: block;
+  margin-top: .18rem;
+  font-size: .53rem;
+  font-weight: 600;
+}
+.vxl-billing-toggle button.active {
+  color: var(--vxl-text);
+  background: var(--vxl-panel-2);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12), inset 0 1px 0 color-mix(in srgb, var(--vxl-text) 10%, transparent);
+}
+
+.vxl-portfolio-art {
+  padding: 1.2rem;
+}
+.vxl-portfolio-sheet {
+  position: relative;
+  width: min(100%, 20rem);
+  min-height: 14rem;
+  overflow: hidden;
+  padding: 1.3rem;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: .65rem;
+  color: #f4f4f5;
+  background: radial-gradient(circle at 90% 10%, #3f3f46, transparent 30%), #0b0b0d;
+  box-shadow: 0 24px 55px rgba(0,0,0,.32);
+}
+.vxl-portfolio-sheet > span {
+  display: block;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  color: #a1a1aa;
+  background: none;
+  font-size: .52rem;
+  font-weight: 750;
+  letter-spacing: .14em;
+}
+.vxl-portfolio-sheet > strong {
+  display: block;
+  margin-top: 1.2rem;
+  font-size: 3.2rem;
+  line-height: 1;
+  letter-spacing: -.08em;
+}
+.vxl-portfolio-sheet > p {
+  max-width: 13rem;
+  margin-top: .65rem;
+  color: #d4d4d8;
+  font-size: .75rem;
+  line-height: 1.45;
+}
+.vxl-portfolio-sheet > div {
+  display: grid;
+  grid-template-columns: 1fr .7fr .45fr;
+  gap: .35rem;
+  margin-top: 1.3rem;
+}
+.vxl-portfolio-sheet > div i {
+  width: auto;
+  height: .35rem;
+  border-radius: 99px;
+  background: #71717a;
+}
+.vxl-portfolio-sheet > small {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  color: #a1a1aa;
+  font-size: .5rem;
+  font-weight: 750;
+  letter-spacing: .12em;
+}
+
+.vxl-template-publish {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--studio-line);
+  border-radius: .9rem;
+  background: linear-gradient(135deg, var(--studio-panel), var(--studio-panel-2));
+}
+.vxl-template-publish strong { font-size: .82rem; }
+.vxl-template-publish p {
+  margin-top: .3rem;
+  color: var(--studio-muted);
+  font-size: .7rem;
+  line-height: 1.5;
+}
+.vxl-template-publish > div:last-child {
+  display: flex;
+  flex: none;
+  gap: .5rem;
+}
+
+.vxl-preview-viewport {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #71717a #18181b;
+  scrollbar-width: thin;
+}
+.vxl-preview-viewport:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: -2px;
+}
+
+@media (max-width: 700px) {
+  .vxl-billing-toggle { width: 100%; }
+  .vxl-billing-toggle button { min-width: 0; flex: 1; }
+  .vxl-template-publish { align-items: stretch; flex-direction: column; }
+  .vxl-template-publish > div:last-child { display: grid; grid-template-columns: 1fr; }
+  .vxl-template-publish button { width: 100%; }
+  .vxl-portfolio-sheet { min-height: 12rem; }
+}

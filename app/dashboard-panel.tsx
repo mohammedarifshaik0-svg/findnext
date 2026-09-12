@@ -4,6 +4,7 @@ import { BarChart3, CheckCircle2, Clock3, Eye, FileText, LayoutTemplate, PenLine
 import { Button } from "@/components/ui/button";
 export function DashboardPanel({ name, headline, isPublic, completion, slug, plan, onOpen }: { name: string; headline: string; isPublic: boolean; completion: number; slug: string; plan: "free" | "live" | "flex" | "care"; onOpen: (tab: string) => void }) {
   const [greeting] = useGreeting();
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "VX";
   return (
     <section className="vxl-dashboard">
       <header>
@@ -46,9 +47,13 @@ export function DashboardPanel({ name, headline, isPublic, completion, slug, pla
       <div className="vxl-dashboard-body">
         <article className="vxl-portfolio-card">
           <div className="vxl-portfolio-art">
-            <span />
-            <i />
-            <b />
+            <div className="vxl-portfolio-sheet">
+              <span>VXL · PROFESSIONAL STORY</span>
+              <strong>{initials}</strong>
+              <p>{headline || "Your experience, made visible."}</p>
+              <div><i /><i /><i /></div>
+              <small>{isPublic ? "LIVE NOW" : `${completion}% READY`}</small>
+            </div>
           </div>
           <div>
             <span>{isPublic ? "PUBLISHED" : "PRIVATE DRAFT"}</span>

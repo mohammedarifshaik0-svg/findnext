@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   ArrowRight, BarChart3, Check, ChevronRight, FileText, Globe2,
-  LayoutTemplate, Loader2, Moon, ShieldCheck, Sun, WandSparkles, X,
+  LayoutTemplate, Loader2, Moon, Rocket, ShieldCheck, SlidersHorizontal, Sun, Upload, WandSparkles, X,
 } from "lucide-react";
+import { PLAN_PRICES, type BillingCycle } from "@/lib/plans";
 
 function GoogleMark() {
   return <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.92h5.38a4.6 4.6 0 0 1-2 3.02v2.55h3.24c1.9-1.75 2.98-4.33 2.98-7.42Z"/><path fill="#34A853" d="M12 22c2.7 0 4.98-.9 6.64-2.35l-3.25-2.55c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.03v2.63A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.93A6 6 0 0 1 6.08 12c0-.67.11-1.32.31-1.93V7.44H3.03A10 10 0 0 0 2 12c0 1.61.38 3.14 1.03 4.56l3.36-2.63Z"/><path fill="#EA4335" d="M12 5.94c1.47 0 2.79.5 3.83 1.5l2.88-2.88A9.65 9.65 0 0 0 12 2a10 10 0 0 0-8.97 5.44l3.36 2.63C7.18 7.7 9.39 5.94 12 5.94Z"/></svg>;
@@ -31,10 +32,21 @@ const featureCards = [
   { icon: ShieldCheck, number: "05", title: "Private by default", copy: "Your information stays private until you explicitly review and publish it." },
   { icon: BarChart3, number: "06", title: "Know what connects", copy: "Understand how people discover and experience your portfolio as VXL grows with you." },
 ];
-const plans = [
-  { name: "Live", price: "₹99", note: "For a finished story that changes occasionally.", features: [{label:"1 portfolio live"},{label:"2 published changes"},{label:"1 résumé re-import"}] },
-  { name: "Flex", price: "₹199", note: "For active careers that keep moving.", featured: true, features: [{label:"Unlimited publishing"},{label:"5 résumé re-imports"},{label:"Custom domain",comingSoon:true}] },
-  { name: "Care", price: "₹499", note: "For a premium result with a human beside you.", features: [{label:"Everything currently in Flex"},{label:"10 résumé re-imports"},{label:"1 managed update"},{label:"Guided custom domain",comingSoon:true}] },
+const processCards = [
+  { icon: Upload, number: "01", title: "Import", copy: "Drop in your résumé. We organise the people, places, work and proof inside it.", proof: "PDF or DOCX", note: "Private by default" },
+  { icon: SlidersHorizontal, number: "02", title: "Direct", copy: "Review every detail, choose a visual world and adjust the expression live.", proof: "8 visual worlds", note: "Edit every detail" },
+  { icon: Rocket, number: "03", title: "Publish", copy: "Approve the final story, claim your link and begin your seven-day trial.", proof: "your-name link", note: "Share instantly" },
+];
+const plans: Array<{
+  id: "live" | "flex" | "care";
+  name: string;
+  note: string;
+  featured?: boolean;
+  features: Array<{ label: string; comingSoon?: boolean }>;
+}> = [
+  { id: "live" as const, name: "Live", note: "For a finished story that changes occasionally.", features: [{label:"1 portfolio live"},{label:"2 published changes"},{label:"1 résumé re-import"},{label:"Made with VXL wordmark"}] },
+  { id: "flex" as const, name: "Flex", note: "For active careers that keep moving.", featured: true, features: [{label:"Unlimited publishing"},{label:"5 résumé re-imports"},{label:"No VXL wordmark"},{label:"Custom domain",comingSoon:true}] },
+  { id: "care" as const, name: "Care", note: "For a premium result with a human beside you.", features: [{label:"Everything currently in Flex"},{label:"10 résumé re-imports"},{label:"No VXL wordmark"},{label:"1 managed update"},{label:"Guided custom domain",comingSoon:true}] },
 ];
 
 export function AuthPanel() {
@@ -45,6 +57,7 @@ export function AuthPanel() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [authOpen, setAuthOpen] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("28_days");
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "light";
     return window.localStorage.getItem("vxl_ui_theme") === "dark" ? "dark" : "light";
@@ -107,11 +120,7 @@ export function AuthPanel() {
 
     <section id="process" className="vxl-section vxl-process">
       <div className="vxl-section-heading"><span>THE PROCESS</span><h2>From file to presence.</h2><p>Three deliberate steps. You stay in control at every one.</p></div>
-      <div className="vxl-process-grid">{[
-        ["01","Import","Drop in your résumé. We organise the people, places, work and proof inside it."],
-        ["02","Direct","Review every detail, choose a visual world and adjust the expression live."],
-        ["03","Publish","Approve the final story, claim your link and begin your seven-day trial."],
-      ].map(([number,title,copy])=><article key={number}><span>{number}</span><div className="vxl-process-visual"><i/><i/><i/></div><h3>{title}</h3><p>{copy}</p></article>)}</div>
+      <div className="vxl-process-grid">{processCards.map(({icon:Icon,number,title,copy,proof,note})=><article key={number}><span>{number}</span><div className="vxl-process-visual"><Icon/><strong>{proof}</strong><small>{note}</small></div><h3>{title}</h3><p>{copy}</p></article>)}</div>
     </section>
 
     <section id="templates" className="vxl-section vxl-template-section">
@@ -135,9 +144,10 @@ export function AuthPanel() {
     </section>
 
     <section id="pricing" className="vxl-section vxl-pricing-section">
-      <div className="vxl-section-heading"><span>SIMPLE, TRANSPARENT PLANS</span><h2>Start light. Grow when you need.</h2><p>All prices are for 28 days. Your seven-day trial starts only when you publish.</p></div>
+      <div className="vxl-section-heading"><span>SIMPLE, TRANSPARENT PLANS</span><h2>Start light. Grow when you need.</h2><p>Choose a 28-day pass or save with annual access. Your seven-day trial starts only when you publish.</p></div>
+      <div className="vxl-billing-toggle" role="group" aria-label="Billing period"><button className={billingCycle==="28_days"?"active":""} onClick={()=>setBillingCycle("28_days")} aria-pressed={billingCycle==="28_days"}>Monthly <small>28 days</small></button><button className={billingCycle==="annual"?"active":""} onClick={()=>setBillingCycle("annual")} aria-pressed={billingCycle==="annual"}>Annual <small>Save up to ₹989</small></button></div>
       <div className="vxl-pricing-trust"><span><ShieldCheck/>7 free days start on first publish</span><span><Check/>No card required to build</span><span><Check/>Draft stays saved after expiry</span></div>
-      <div className="vxl-pricing-grid">{plans.map(plan=><article key={plan.name} className={plan.featured?"featured":""}>{plan.featured&&<div className="vxl-popular">MOST FLEXIBLE</div>}<span>{plan.name}</span><h3>{plan.price}<small>/28 days</small></h3><p>{plan.note}</p><ul>{plan.features.map(feature=><li key={feature.label} className={feature.comingSoon?"is-coming-soon":""}><Check/>{feature.label}{feature.comingSoon&&<small>COMING SOON</small>}</li>)}</ul><button className={plan.featured?"vxl-chrome-button":"vxl-quiet-button"} onClick={() => openAuth("signup")}>Choose {plan.name}<ArrowRight/></button></article>)}</div>
+      <div className="vxl-pricing-grid">{plans.map(plan=><article key={plan.name} className={plan.featured?"featured":""}>{plan.featured&&<div className="vxl-popular">MOST FLEXIBLE</div>}<span>{plan.name}</span><h3>₹{PLAN_PRICES[plan.id][billingCycle]}<small>/{billingCycle==="annual"?"year":"28 days"}</small></h3><p>{plan.note}</p><ul>{plan.features.map(feature=><li key={feature.label} className={feature.comingSoon?"is-coming-soon":""}><Check/>{feature.label}{feature.comingSoon&&<small>COMING SOON</small>}</li>)}</ul><button className={plan.featured?"vxl-chrome-button":"vxl-quiet-button"} onClick={() => openAuth("signup")}>Choose {plan.name}<ArrowRight/></button></article>)}</div>
       <p className="vxl-pricing-note">Every plan includes every template, palette, typeface and effect. We charge for keeping your presence live—not for good taste.</p>
       <p className="vxl-compliance-note">By purchasing a VXL plan, you agree to our <Link href="/terms">Terms &amp; Conditions</Link> and <Link href="/refund-policy">Refund &amp; Cancellation Policy</Link>.</p>
     </section>

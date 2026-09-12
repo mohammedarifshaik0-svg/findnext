@@ -244,6 +244,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
   const photoRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLElement>(null);
   const previewRef = useRef<HTMLElement>(null);
+  const previewViewportRef = useRef<HTMLDivElement>(null);
   const [uiTheme, setUiTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "light";
     return window.localStorage.getItem("vxl_ui_theme") === "dark" ? "dark" : "light";
@@ -288,6 +289,18 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
       .catch((error) => setNotice(error.message))
       .finally(() => setLoading(false));
   }, [account]);
+
+  useEffect(() => {
+    const offsets: Record<string, number> = {
+      profile: 0,
+      templates: 0,
+      publish: 0,
+      extras: 250,
+      experience: 430,
+      education: 650,
+    };
+    previewViewportRef.current?.scrollTo({ top: offsets[activeTab] ?? 0, behavior: "smooth" });
+  }, [activeTab]);
 
   const completionChecks = useMemo(
     () => [
@@ -433,7 +446,10 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
     }
     const paid = subscription?.status === "active" && (!subscription.period_ends_at || new Date(subscription.period_ends_at).getTime() > Date.now());
     const publishWindow = paid ? `${subscription.plan.toUpperCase()} plan · live through ${subscription.period_ends_at ? new Date(subscription.period_ends_at).toLocaleDateString() : "your active billing period"}` : data.trialEndsAt ? `Free version · live until ${new Date(data.trialEndsAt).toLocaleDateString()}` : "Free version · your 7-day live period starts now";
-    if (!window.confirm(`Publish this saved version?\n\n${publishWindow}\n\nOnly this saved version becomes public. Future draft edits stay private until you publish again.`)) return;
+    const wordmark = paid && (subscription.plan === "flex" || subscription.plan === "care")
+      ? "VXL wordmark: removed on Flex and Care"
+      : "VXL wordmark: shown at the bottom on Free and Live";
+    if (!window.confirm(`Publish this saved version?\n\n${publishWindow}\n${wordmark}\n\nOnly this saved version becomes public. Future draft edits stay private until you publish again.`)) return;
     const saved = await save(data, "Draft saved. Publishing your approved version…");
     if (!saved) return;
     setSaving(true);
@@ -563,6 +579,37 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
   const livePublishLimit = subscription?.plan === "live" ? PLAN_LIMITS.live.published_updates : null;
   const publishRemaining = livePublishLimit === null || publishedUpdates === null ? null : Math.max(0, livePublishLimit - publishedUpdates);
   const publicUrl = data.portfolioSlug ? `https://www.thevxl.com/p/${data.portfolioSlug}` : "";
+  const copyPortfolioLink = async () => {
+    if (!publicUrl) return;
+    try {
+      let copied = false;
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(publicUrl);
+          copied = true;
+        } catch {
+          // Some embedded browsers expose Clipboard API but deny permission.
+        }
+      }
+      if (!copied) {
+        const input = document.createElement("textarea");
+        input.value = publicUrl;
+        input.setAttribute("readonly", "");
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        copied = document.execCommand("copy");
+        input.remove();
+      }
+      if (!copied) throw new Error("Copy was blocked.");
+      setNoticeTone("success");
+      setNotice("Portfolio link copied. It is ready to share.");
+    } catch {
+      setNoticeTone("error");
+      setNotice("Copy was blocked by your browser. Press and hold the link above to copy it, or use Share.");
+    }
+  };
   const sharePortfolio = async () => {
     if (!publicUrl) return;
     if (navigator.share) {
@@ -573,9 +620,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
         if (error instanceof DOMException && error.name === "AbortError") return;
       }
     }
-    await navigator.clipboard.writeText(publicUrl);
-    setNoticeTone("success");
-    setNotice("Portfolio link copied. It is ready to share.");
+    await copyPortfolioLink();
   };
   if (loading)
     return (
@@ -1161,11 +1206,21 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                     </div>
                   </div>
                 </div>
-                <div className="mt-6 flex justify-end">
-                  <Button variant="outline" onClick={preview} disabled={saving}>
-                    <Eye className="h-4 w-4" />
-                    Open full preview
-                  </Button>
+                <div className="vxl-template-publish mt-6">
+                  <div>
+                    <strong>Happy with this direction?</strong>
+                    <p>{subscription?.status === "active" && (subscription.plan === "flex" || subscription.plan === "care") ? "Flex and Care publish without the VXL wordmark." : "Free and Live portfolios include a small “Made with VXL” wordmark at the bottom."}</p>
+                  </div>
+                  <div>
+                    <Button className="vxl-studio-primary" onClick={publish} disabled={saving}>
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+                      {data.isPublic ? `Publish changes${publishRemaining !== null ? ` · ${publishRemaining} left` : ""}` : "Publish portfolio"}
+                    </Button>
+                    <Button variant="outline" onClick={preview} disabled={saving}>
+                      <Eye className="h-4 w-4" />
+                      Open full preview
+                    </Button>
+                  </div>
                 </div>
               </Section>
             </TabsContent>
@@ -1234,7 +1289,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                       <p>Anyone with this link can view the version you published.</p>
                     </div>
                     <div>
-                      <Button variant="outline" onClick={async () => { await navigator.clipboard.writeText(publicUrl); setNoticeTone("success"); setNotice("Portfolio link copied. It is ready to share."); }}><Copy />Copy link</Button>
+                      <Button variant="outline" onClick={copyPortfolioLink}><Copy />Copy link</Button>
                       <Button onClick={sharePortfolio}><Share2 />Share</Button>
                       <Button variant="ghost" asChild><a href={publicUrl} target="_blank" rel="noreferrer"><ExternalLink />Open</a></Button>
                     </div>
@@ -1268,8 +1323,8 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                 </div>
                 <Badge variant="outline">{templates.find((template) => template.id === data.theme)?.name ?? "Studio"}</Badge>
               </div>
-              <div className="vxl-preview-viewport">
-                <PortfolioMiniPreview data={data} activeSection={activeTab} />
+              <div ref={previewViewportRef} className="vxl-preview-viewport" tabIndex={0} aria-label="Scrollable live portfolio preview">
+                <PortfolioMiniPreview data={data} showWordmark={!(subscription?.status === "active" && (subscription.plan === "flex" || subscription.plan === "care"))} />
               </div>
             </div>
           </aside>
@@ -1357,6 +1412,9 @@ function PublishStatus({ subscription, trialEndsAt, isPublic, theme, onPlans }: 
         <small>VERSION TO PUBLISH</small>
         <strong>{templateName} · saved draft</strong>
         <span>{isPublic ? "Replaces the current live version" : "Creates your first live version"}</span>
+        <small className="mt-3">BRANDING</small>
+        <strong>{paid && (subscription.plan === "flex" || subscription.plan === "care") ? "No VXL wordmark" : "“Made with VXL” at the bottom"}</strong>
+        <span>{paid && (subscription.plan === "flex" || subscription.plan === "care") ? "Included with Flex and Care" : "Upgrade to Flex or Care to remove it"}</span>
       </div>
       {!paid && (
         <Button variant="outline" onClick={onPlans}>
