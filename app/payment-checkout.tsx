@@ -32,8 +32,8 @@ function loadCheckout() {
   return scriptPromise;
 }
 
-export function PaymentCheckout({ plan, cycle, email, test, disabled, onBusy, onActivated }: {
-  plan: PaidPlan; cycle: BillingCycle; email: string; test: boolean; disabled: boolean;
+export function PaymentCheckout({ plan, cycle, email, referralCode, test, disabled, onBusy, onActivated }: {
+  plan: PaidPlan; cycle: BillingCycle; email: string; referralCode: string; test: boolean; disabled: boolean;
   onBusy: (busy: boolean) => void; onActivated: () => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -45,6 +45,9 @@ export function PaymentCheckout({ plan, cycle, email, test, disabled, onBusy, on
   const callbackStarted = useRef(false);
   const selected = PLANS.find(item => item.id === plan)!;
   const busy = ["opening", "checkout", "verifying"].includes(state);
+  const baseAmount = PLAN_PRICES[plan][cycle] * 100;
+  const referralAmount = Math.round(baseAmount * 0.9);
+  const hasReferral = Boolean(referralCode.trim());
   const release = () => { busyRef.current = false; onBusy(false); };
 
   async function verify(payment: PaymentResponse) {
@@ -75,10 +78,12 @@ export function PaymentCheckout({ plan, cycle, email, test, disabled, onBusy, on
     try {
       await loadCheckout();
       purchaseId.current ??= crypto.randomUUID();
-      const response = await fetch("/api/payments/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan, billingCycle: cycle, purchaseId: purchaseId.current }), signal: AbortSignal.timeout(25000) });
+      const response = await fetch("/api/payments/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan, billingCycle: cycle, purchaseId: purchaseId.current, referralCode }), signal: AbortSignal.timeout(25000) });
       const order = await response.json();
       if (!response.ok) throw new Error(order.error || "Checkout is unavailable. Please try later.");
-      if (!window.Razorpay || order.test !== test || order.amount !== PLAN_PRICES[plan][cycle] * 100 || order.currency !== "INR") throw new Error("Order details changed. Please refresh before paying.");
+      const validAmount = order.amount === baseAmount || order.amount === referralAmount;
+      const expectedDiscount = order.amount === referralAmount && referralAmount !== baseAmount;
+      if (!window.Razorpay || order.test !== test || !validAmount || order.currency !== "INR" || order.discountApplied !== expectedDiscount) throw new Error("Order details changed. Please refresh before paying.");
       const checkout = new window.Razorpay({ key: order.keyId, order_id: order.orderId, amount: order.amount, currency: order.currency,
         name: "VXL", description: `${selected.name} · ${cycle === "annual" ? "365 days" : "28 days"} · No automatic renewal`,
         prefill: { email }, theme: { color: "#09090b" },
@@ -96,7 +101,11 @@ export function PaymentCheckout({ plan, cycle, email, test, disabled, onBusy, on
     {!expanded ? <Button className="w-full" disabled={disabled} onClick={() => setExpanded(true)}>{test ? "Test checkout" : `Choose ${selected.name}`}</Button> :
       <section aria-label={`${selected.name} order summary`} className="rounded-xl border border-slate-300 p-4">
         <h3 className="font-semibold">{test ? "Test order" : "Your order"}: VXL {selected.name}</h3>
-        <p className="mt-2 text-xl font-semibold">₹{PLAN_PRICES[plan][cycle].toLocaleString("en-IN")}</p>
+        <div className="mt-2 flex flex-wrap items-baseline gap-2">
+          <p className="text-xl font-semibold">₹{((hasReferral ? referralAmount : baseAmount) / 100).toLocaleString("en-IN", { minimumFractionDigits: hasReferral ? 2 : 0, maximumFractionDigits: 2 })}</p>
+          {hasReferral && <><span className="text-sm text-slate-400 line-through">₹{(baseAmount / 100).toLocaleString("en-IN")}</span><span className="text-xs font-semibold text-emerald-700">10% referral saving</span></>}
+        </div>
+        {hasReferral && <p className="mt-1 text-xs text-slate-500">Your code is validated before secure checkout opens.</p>}
         <p className="mt-1 text-sm">{cycle === "annual" ? "365 days" : "28 days"} · One-time payment</p>
         <p className="mt-1 text-sm">No automatic renewal.</p>
         {test && <p className="mt-3 text-sm font-semibold">Sandbox only. This will not upgrade your real account.</p>}
