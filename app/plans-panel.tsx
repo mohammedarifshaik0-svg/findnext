@@ -33,6 +33,7 @@ type Subscription = {
 type BillingData = {
   referral?: { code: string };
   attribution?: { referral_code: string; status: string };
+  referralStats?: { successful: number; bonusDays: number };
   requests?: Array<{
     id: string;
     plan: Plan;
@@ -108,7 +109,6 @@ export function PlansPanel({ email }: { email: string }) {
   const [billing, setBilling] = useState<BillingData>({});
   const [referralInput, setReferralInput] = useState("");
   const [activationCode, setActivationCode] = useState("");
-  const [notice, setNotice] = useState("");
   const [planToast, setPlanToast] = useState<PlanToast | null>(null);
   const [upgrade, setUpgrade] = useState<UpgradeConfirmation | null>(null);
   const [working, setWorking] = useState<string | null>(null);
@@ -150,7 +150,6 @@ export function PlansPanel({ email }: { email: string }) {
 
   const requestPlan = async (plan: Plan) => {
     setWorking(plan);
-    setNotice("");
     setPlanToast(null);
     const selectedPlan = PLANS.find((item) => item.id === plan);
 
@@ -192,7 +191,6 @@ export function PlansPanel({ email }: { email: string }) {
 
   const redeem = async () => {
     setWorking("redeem");
-    setNotice("");
     setPlanToast(null);
 
     try {
@@ -210,9 +208,6 @@ export function PlansPanel({ email }: { email: string }) {
       const periodEndsAt = result.redemption.periodEndsAt as string;
       setActivationCode("");
       setUpgrade({ plan, periodEndsAt });
-      setNotice(
-        `Your ${planNames[plan]} plan is active until ${formatDate(periodEndsAt)}.`,
-      );
       await load();
     } catch (error) {
       setPlanToast({
@@ -231,6 +226,42 @@ export function PlansPanel({ email }: { email: string }) {
   const referralLink = billing.referral?.code
     ? `${typeof window === "undefined" ? "https://thevxl.com" : window.location.origin}/?ref=${billing.referral.code}`
     : "";
+  const appliedReferral = billing.attribution?.referral_code ?? "";
+  const hasPaidPurchase = billing.purchases?.some((purchase) => purchase.mode === "live" && purchase.status === "captured") ?? false;
+  const displayReferral = appliedReferral || referralInput;
+  const checkoutReferral = billing.attribution?.status === "pending"
+    ? appliedReferral
+    : billing.attribution || hasPaidPurchase
+      ? ""
+      : referralInput;
+
+  const copyReferralLink = async () => {
+    if (!referralLink) return;
+    try {
+      let copied = false;
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(referralLink);
+          copied = true;
+        } catch {}
+      }
+      if (!copied) {
+        const input = document.createElement("textarea");
+        input.value = referralLink;
+        input.setAttribute("readonly", "");
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        copied = document.execCommand("copy");
+        input.remove();
+      }
+      if (!copied) throw new Error("Copy blocked");
+      setPlanToast({ kind: "success", title: "Referral link copied", message: "It is ready to share with your circle." });
+    } catch {
+      setPlanToast({ kind: "error", title: "Copy was blocked", message: "Press and hold the referral link to copy it manually." });
+    }
+  };
 
   const usageRows = activeSubscription && activeSubscription.plan !== "trial"
     ? [
@@ -390,7 +421,7 @@ export function PlansPanel({ email }: { email: string }) {
                     </li>
                   ))}
                 </ul>
-                {checkout.enabled ? <PaymentCheckout key={`${plan.id}-${cycle}`} plan={plan.id} cycle={cycle} email={email} test={checkout.test} disabled={Boolean(working)} onBusy={busy=>setWorking(busy?plan.id:null)} onActivated={load} /> : <Button
+                {checkout.enabled ? <PaymentCheckout key={`${plan.id}-${cycle}-${checkoutReferral}`} plan={plan.id} cycle={cycle} email={email} referralCode={checkoutReferral} test={checkout.test} disabled={Boolean(working)} onBusy={busy=>setWorking(busy?plan.id:null)} onActivated={load} /> : <Button
                   className="mt-6 w-full"
                   variant={plan.featured && !isCurrent ? "default" : "outline"}
                   disabled={Boolean(working) || isCurrent}
@@ -420,31 +451,22 @@ export function PlansPanel({ email }: { email: string }) {
 
         <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <label className="field">
-            <span>Have a referral code? Get 10% off your first paid term.</span>
+            <span>{billing.attribution?.status === "rewarded" ? "Referral saving used on your first paid term." : hasPaidPurchase && !appliedReferral ? "Referral codes apply before your first paid term." : "Have a referral code? Get 10% off your first paid term."}</span>
             <Input
-              value={referralInput}
+              value={displayReferral}
               onChange={(event) =>
                 setReferralInput(event.target.value.toUpperCase())
               }
+              disabled={Boolean(appliedReferral) || hasPaidPurchase}
               placeholder="VXL-XXXXXXXX"
             />
           </label>
           <p className="mt-2 text-xs text-slate-500">
-            We confirm your discounted payment total by email before you pay.
+            {appliedReferral ? `${appliedReferral} is attached to your account and will be checked automatically.` : hasPaidPurchase ? "Your account already has a verified paid purchase." : "A valid code is checked before Razorpay opens and reduces the displayed checkout total by 10%."}
           </p>
         </div>
         <p className="mt-5 text-center text-xs leading-5 text-slate-500">By purchasing a VXL plan, you agree to our <Link className="font-semibold underline underline-offset-4" href="/terms">Terms &amp; Conditions</Link> and <Link className="font-semibold underline underline-offset-4" href="/refund-policy">Refund &amp; Cancellation Policy</Link>. These are fixed-duration plans and do not renew automatically.</p>
       </section>
-
-      {notice && (
-        <div
-          role="status"
-          className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900"
-        >
-          <CircleCheckBig className="h-4 w-4 shrink-0 text-emerald-600" />
-          {notice}
-        </div>
-      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
@@ -452,7 +474,8 @@ export function PlansPanel({ email }: { email: string }) {
             <Gift className="h-5 w-5 text-indigo-600" />
             <h3 className="font-semibold">Your referral circle</h3>
           </div>
-          <p className="mt-2 text-sm leading-6 text-slate-500">{checkout.enabled ? "Referral rewards are paused while secure checkout is being introduced. Your existing code remains saved." : "Your friend saves 10% on their first paid term. You receive 30 extra live days after their payment is verified."}</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Your friend saves 10% on their first paid term. After that payment is verified, you receive 30 bonus days—added to your active paid plan, or 30 days of Live if you do not have one.</p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-600"><span className="rounded-full bg-slate-100 px-3 py-1.5">{billing.referralStats?.successful ?? 0} successful referrals</span><span className="rounded-full bg-slate-100 px-3 py-1.5">{billing.referralStats?.bonusDays ?? 0} bonus days earned</span></div>
           <div className="mt-4 flex gap-2">
             <Input
               readOnly
@@ -462,10 +485,7 @@ export function PlansPanel({ email }: { email: string }) {
               variant="outline"
               size="icon"
               disabled={!referralLink}
-              onClick={() => {
-                void navigator.clipboard.writeText(referralLink);
-                setNotice("Referral link copied.");
-              }}
+              onClick={() => void copyReferralLink()}
               aria-label="Copy referral link"
             >
               <Copy className="h-4 w-4" />
