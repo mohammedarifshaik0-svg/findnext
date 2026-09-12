@@ -818,7 +818,17 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                   <Textarea rows={6} value={data.professionalSummary} onChange={(e) => update("professionalSummary", e.target.value)} placeholder="Tell people what you do, what you care about and the impact you create." />
                   <small>{data.professionalSummary.length}/4,000</small>
                 </label>
-                <AiWriting headline={data.headline} summary={data.professionalSummary} onApply={(field, value) => update(field === "headline" ? "headline" : "professionalSummary", value)} />
+                <AiWriting
+                  headline={data.headline}
+                  summary={data.professionalSummary}
+                  context={{
+                    location: [data.city, data.country].filter(Boolean).join(", "),
+                    experiences: data.experiences.map(({ role, company, startDate, endDate, isCurrent, description }) => ({ role, company, startDate, endDate, isCurrent, description })),
+                    education: data.education.map(({ institution, qualification, field, grade, description }) => ({ institution, qualification, field, grade, description })),
+                    items: data.items.map(({ itemType, title, subtitle, description, level }) => ({ itemType, title, subtitle, description, level })),
+                  }}
+                  onApply={(field, value) => update(field === "headline" ? "headline" : "professionalSummary", value)}
+                />
               </Section>
             </TabsContent>
             <TabsContent id="vxl-section-experience" value="experience">
