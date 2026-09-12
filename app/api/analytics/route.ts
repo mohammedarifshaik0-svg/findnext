@@ -12,7 +12,7 @@ export async function GET() {
   if(error) return Response.json({error:"Analytics are temporarily unavailable."},{status:503});
   const days=new Map<string,number>(); const visitors=new Set<string>(); const sources=new Map<string,number>(); const devices=new Map<string,number>();
   for(const row of rows??[]){const day=String(row.viewed_at).slice(0,10);days.set(day,(days.get(day)??0)+1);visitors.add(String(row.visitor_hash));const source=row.referrer_domain||"Direct";sources.set(source,(sources.get(source)??0)+1);devices.set(row.device_class,(devices.get(row.device_class)??0)+1);}
-  return Response.json({totalViews:rows?.length??0,detailed,historyDays:detailed?historyDays:null,uniqueVisitors:detailed?visitors.size:null,days:detailed?[...days].map(([date,views])=>({date,views})):[],sources:detailed?[...sources].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([source,views])=>({source,views})):[],devices:detailed?[...devices].map(([device,views])=>({device,views})):[]});
+  return Response.json({plan:active?subscription?.plan??"free":"free",totalViews:rows?.length??0,detailed,historyDays:detailed?historyDays:null,uniqueVisitors:detailed?visitors.size:null,days:detailed?[...days].map(([date,views])=>({date,views})):[],sources:detailed?[...sources].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([source,views])=>({source,views})):[],devices:detailed?[...devices].map(([device,views])=>({device,views})):[]});
 }
 
 export async function POST(request:Request){

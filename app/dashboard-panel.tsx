@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
-import { BarChart3, CheckCircle2, Clock3, Eye, FileText, LayoutTemplate, PenLine } from "lucide-react";
+import { BarChart3, CheckCircle2, Clock3, Copy, ExternalLink, Eye, FileText, LayoutTemplate, PenLine, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-export function DashboardPanel({ name, headline, isPublic, completion, slug, plan, onOpen }: { name: string; headline: string; isPublic: boolean; completion: number; slug: string; plan: "free" | "live" | "flex" | "care"; onOpen: (tab: string) => void }) {
+export function DashboardPanel({ name, headline, isPublic, completion, slug, plan, onOpen, onCopy, onShare }: { name: string; headline: string; isPublic: boolean; completion: number; slug: string; plan: "free" | "live" | "flex" | "care"; onOpen: (tab: string) => void; onCopy: () => void; onShare: () => void }) {
   const [greeting] = useGreeting();
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "VX";
   return (
@@ -59,20 +59,20 @@ export function DashboardPanel({ name, headline, isPublic, completion, slug, pla
             <span>{isPublic ? "PUBLISHED" : "PRIVATE DRAFT"}</span>
             <h2>{headline || `${name}'s professional portfolio`}</h2>
             <p>thevxl.com/p/{slug || "your-name"}</p>
-            <div>
-              <Button variant="outline" onClick={() => onOpen("templates")}>
-                <LayoutTemplate />
-                Templates
-              </Button>
-              <Button variant="outline" onClick={() => onOpen("analytics")}>
-                <BarChart3 />
-                Analytics
-              </Button>
-              {slug && (
-                <Button variant="outline" onClick={() => window.open(`/p/${slug}`, "_blank")}>
-                  <Eye />
-                  Preview
-                </Button>
+            <div className="vxl-dashboard-card-actions">
+              {isPublic && slug ? (
+                <>
+                  <Button className="vxl-studio-primary" onClick={onCopy}><Copy />Copy link</Button>
+                  <Button variant="outline" onClick={onShare}><Share2 />Share</Button>
+                  <Button variant="outline" asChild><a href={`/p/${slug}`} target="_blank" rel="noreferrer"><ExternalLink />Open site</a></Button>
+                  <Button variant="ghost" onClick={() => onOpen("analytics")}><BarChart3 />Analytics</Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => onOpen("templates")}><LayoutTemplate />Templates</Button>
+                  <Button variant="outline" onClick={() => onOpen("analytics")}><BarChart3 />Analytics</Button>
+                  {slug && <Button variant="outline" onClick={() => window.open(`/p/${slug}`, "_blank")}><Eye />Preview</Button>}
+                </>
               )}
             </div>
           </div>
