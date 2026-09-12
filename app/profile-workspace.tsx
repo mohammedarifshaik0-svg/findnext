@@ -232,6 +232,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [noticeTone, setNoticeTone] = useState<"success" | "error" | "info">("info");
+  const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
   const [publishedUpdates, setPublishedUpdates] = useState<number | null>(null);
   const [resume, setResume] = useState<{
     id: string;
@@ -245,6 +246,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
   const contentRef = useRef<HTMLElement>(null);
   const previewRef = useRef<HTMLElement>(null);
   const previewViewportRef = useRef<HTMLDivElement>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [uiTheme, setUiTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "light";
     return window.localStorage.getItem("vxl_ui_theme") === "dark" ? "dark" : "light";
@@ -301,6 +303,10 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
     };
     previewViewportRef.current?.scrollTo({ top: offsets[activeTab] ?? 0, behavior: "smooth" });
   }, [activeTab]);
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
 
   const completionChecks = useMemo(
     () => [
@@ -579,6 +585,11 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
   const livePublishLimit = subscription?.plan === "live" ? PLAN_LIMITS.live.published_updates : null;
   const publishRemaining = livePublishLimit === null || publishedUpdates === null ? null : Math.max(0, livePublishLimit - publishedUpdates);
   const publicUrl = data.portfolioSlug ? `https://www.thevxl.com/p/${data.portfolioSlug}` : "";
+  const showToast = (message: string, tone: "success" | "error") => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ message, tone });
+    toastTimerRef.current = setTimeout(() => setToast(null), 4200);
+  };
   const copyPortfolioLink = async () => {
     if (!publicUrl) return;
     try {
@@ -603,11 +614,9 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
         input.remove();
       }
       if (!copied) throw new Error("Copy was blocked.");
-      setNoticeTone("success");
-      setNotice("Portfolio link copied. It is ready to share.");
+      showToast("Portfolio link copied. It is ready to share.", "success");
     } catch {
-      setNoticeTone("error");
-      setNotice("Copy was blocked by your browser. Press and hold the link above to copy it, or use Share.");
+      showToast("Copy was blocked by your browser. Press and hold the link, or use Share.", "error");
     }
   };
   const sharePortfolio = async () => {
@@ -632,6 +641,13 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
     );
   return (
     <main className={`vxl-workspace ${uiTheme === "dark" ? "is-dark" : "is-light"}`}>
+      {toast && (
+        <div className={`vxl-action-toast is-${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">
+          {toast.tone === "success" ? <Check /> : <AlertCircle />}
+          <span>{toast.message}</span>
+          <button type="button" onClick={() => setToast(null)} aria-label="Dismiss notification"><X /></button>
+        </div>
+      )}
       <header className="vxl-studio-header">
         <div className="vxl-studio-lockup">
           <VxlLogo className="vxl-studio-logo" />
@@ -763,7 +779,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
             <TabsContent id="vxl-section-dashboard" value="dashboard">
-              <DashboardPanel name={data.fullName || account.name} headline={data.headline} isPublic={data.isPublic} completion={completion} slug={data.portfolioSlug} plan={subscription?.status === "active" ? subscription.plan : "free"} onOpen={openTab} />
+              <DashboardPanel name={data.fullName || account.name} headline={data.headline} isPublic={data.isPublic} completion={completion} slug={data.portfolioSlug} plan={subscription?.status === "active" ? subscription.plan : "free"} onOpen={openTab} onCopy={copyPortfolioLink} onShare={sharePortfolio} />
             </TabsContent>
             <TabsContent id="vxl-section-profile" value="profile">
               <Section title="Personal profile" description="The essentials recruiters see first.">
@@ -1301,7 +1317,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
               <PlansPanel email={data.email || account.email} />
             </TabsContent>
             <TabsContent id="vxl-section-analytics" value="analytics">
-              <AnalyticsPanel />
+              <AnalyticsPanel onUpgrade={() => openTab("plans")} />
             </TabsContent>
             <TabsContent id="vxl-section-settings" value="settings">
               <SettingsPanel email={account.email} onRestored={() => window.location.reload()} />
