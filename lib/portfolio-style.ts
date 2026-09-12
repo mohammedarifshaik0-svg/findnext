@@ -308,17 +308,42 @@ export function textFinishFor(theme: string, finishId?: string) {
   return finishes.find((finish) => finish.id === finishId) ?? finishes[0];
 }
 
+function rgb(hex: string) {
+  const value = hex.replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(value)) return null;
+  return [0, 2, 4].map((index) => Number.parseInt(value.slice(index, index + 2), 16) / 255);
+}
+
+function contrast(first: string, second: string) {
+  const luminance = (hex: string) => {
+    const channels = rgb(hex);
+    if (!channels) return 0;
+    const linear = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  };
+  const a = luminance(first);
+  const b = luminance(second);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+function readable(preferred: string, background: string, minimum: number) {
+  if (contrast(preferred, background) >= minimum) return preferred;
+  return contrast("#ffffff", background) >= contrast("#09090b", background) ? "#ffffff" : "#09090b";
+}
+
 export function portfolioStyle(theme: string, paletteId?: string, intensity = 65, textFinishId?: string) {
   const palette = paletteFor(theme, paletteId);
   const text = textFinishFor(theme, textFinishId);
+  const primary = readable(text.primary, palette.background, 4.5);
+  const muted = readable(text.muted, palette.background, 3);
   const normalized = Math.max(0, Math.min(100, Number(intensity) || 0)) / 100;
   return {
     "--portfolio-accent": palette.colors[0],
     "--portfolio-accent-2": palette.colors[1],
     "--portfolio-accent-3": palette.colors[2],
     "--portfolio-bg": palette.background,
-    "--portfolio-text": text.primary,
-    "--portfolio-muted": text.muted,
+    "--portfolio-text": primary,
+    "--portfolio-muted": muted,
     "--portfolio-fx": normalized.toFixed(2),
   } as CSSProperties;
 }
