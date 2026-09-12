@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const maxDuration = 60;
-const model = "google/gemini-3.8-flash";
+// Google currently rejects Gemini 3.8 requests for this Gateway account with
+// HTTP 403. Keep the production path on a broadly available, low-cost model.
+const model = "openai/gpt-5-mini";
 
 function generationFailure(error: unknown) {
   const name = error instanceof Error ? error.name : "UnknownError";
@@ -17,7 +19,7 @@ function generationFailure(error: unknown) {
         ? "gateway_credit"
         : /timeout|abort/.test(normalized)
           ? "timeout"
-          : providerStatus
+        : providerStatus || /gatewayinternalservererror/.test(normalized)
             ? "provider_response"
             : "generation";
 
