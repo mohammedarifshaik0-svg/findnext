@@ -1,6 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#2e2e33"/><stop offset=".6" stop-color="#141417"/><stop offset="1" stop-color="#09090b"/></linearGradient></defs>
-  <rect width="64" height="64" rx="15" fill="url(#g)"/>
-  <rect x="1" y="1" width="62" height="62" rx="14" fill="none" stroke="#fff" stroke-opacity=".12"/>
-  <path d="M19 17h9l4.2 8.2L36.7 17H46L37 31.8 46.8 48h-9.2l-5.5-9.8L26.6 48h-9.4l10-16.2L19 17Z" fill="#fff"/>
+  <defs>
+    <linearGradient id="bg" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#202024"/><stop offset="1" stop-color="#050506"/></linearGradient>
+    <linearGradient id="chrome" x1="15" y1="12" x2="49" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#fff"/><stop offset=".28" stop-color="#8d8d94"/><stop offset=".55" stop-color="#fff"/><stop offset=".78" stop-color="#67676d"/><stop offset="1" stop-color="#f4f4f5"/></linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <path d="M14 51V29c0-10 8-18 18-18s18 8 18 18v22H14Z" fill="none" stroke="url(#chrome)" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M20 46V30c0-7 5-13 12-13s12 6 12 13v16H20Z" fill="none" stroke="#fafafa" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M23 36c2.3-4 5.5-4 9 0 3.5-4 6.7-4 9 0-2.3 4-5.5 4-9 0-3.5 4-6.7 4-9 0Z" fill="none" stroke="#fafafa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
