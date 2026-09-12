@@ -16,19 +16,118 @@ export type TextFinish = {
 
 export const portfolioPalettes: Record<string, readonly PortfolioPalette[]> = {
   studio: [
-    { id: "champagne", name: "Champagne", description: "Warm, refined and editorial", colors: ["#dfba86", "#7c5cff", "#090e22"], background: "#090e22" },
-    { id: "sapphire", name: "Sapphire", description: "Cool, assured and modern", colors: ["#78c7ff", "#3758d6", "#071529"], background: "#071529" },
-    { id: "rosewood", name: "Rosewood", description: "Rich, human and expressive", colors: ["#f4a7a1", "#9b4667", "#1d0d18"], background: "#1d0d18" },
+    {
+      id: "champagne",
+      name: "Champagne",
+      description: "Warm, refined and editorial",
+      colors: ["#dfba86", "#7c5cff", "#090e22"],
+      background: "#090e22",
+    },
+    {
+      id: "sapphire",
+      name: "Sapphire",
+      description: "Cool, assured and modern",
+      colors: ["#78c7ff", "#3758d6", "#071529"],
+      background: "#071529",
+    },
+    {
+      id: "rosewood",
+      name: "Rosewood",
+      description: "Rich, human and expressive",
+      colors: ["#f4a7a1", "#9b4667", "#1d0d18"],
+      background: "#1d0d18",
+    },
   ],
   canvas: [
-    { id: "aurora", name: "Aurora", description: "Cyan, violet and magenta", colors: ["#00fff5", "#8c00ff", "#ff0099"], background: "#050508" },
-    { id: "sunset", name: "Sunset", description: "Coral, magenta and gold", colors: ["#ff5959", "#ff0099", "#ffd600"], background: "#100508" },
-    { id: "ocean", name: "Ocean", description: "Deep blue and electric cyan", colors: ["#00d9ff", "#0f2180", "#6d5dfc"], background: "#030914" },
+    {
+      id: "aurora",
+      name: "Aurora",
+      description: "Cyan, violet and magenta",
+      colors: ["#00fff5", "#8c00ff", "#ff0099"],
+      background: "#050508",
+    },
+    {
+      id: "sunset",
+      name: "Sunset",
+      description: "Coral, magenta and gold",
+      colors: ["#ff5959", "#ff0099", "#ffd600"],
+      background: "#100508",
+    },
+    {
+      id: "ocean",
+      name: "Ocean",
+      description: "Deep blue and electric cyan",
+      colors: ["#00d9ff", "#0f2180", "#6d5dfc"],
+      background: "#030914",
+    },
   ],
   ledger: [
-    { id: "moss", name: "Moss", description: "Quiet organic green", colors: ["#9fb292", "#526d5a", "#000000"], background: "#000000" },
-    { id: "ice", name: "Ice", description: "Clean technical blue", colors: ["#9dd9e8", "#426d7a", "#000306"], background: "#000306" },
-    { id: "oxide", name: "Oxide", description: "Warm copper restraint", colors: ["#d79a72", "#765142", "#080402"], background: "#080402" },
+    {
+      id: "moss",
+      name: "Moss",
+      description: "Quiet organic green",
+      colors: ["#9fb292", "#526d5a", "#000000"],
+      background: "#000000",
+    },
+    {
+      id: "ice",
+      name: "Ice",
+      description: "Clean technical blue",
+      colors: ["#9dd9e8", "#426d7a", "#000306"],
+      background: "#000306",
+    },
+    {
+      id: "oxide",
+      name: "Oxide",
+      description: "Warm copper restraint",
+      colors: ["#d79a72", "#765142", "#080402"],
+      background: "#080402",
+    },
+  ],
+  "mono-brutalist": [
+    {
+      id: "signal",
+      name: "Signal",
+      description: "Black ink on sharp white",
+      colors: ["#000000", "#ffffff", "#000000"],
+      background: "#ffffff",
+    },
+  ],
+  "mono-chrome": [
+    {
+      id: "chrome",
+      name: "Chrome",
+      description: "Polished monochrome depth",
+      colors: ["#f4f4f5", "#71717a", "#09090b"],
+      background: "#09090b",
+    },
+  ],
+  "mono-editorial": [
+    {
+      id: "ink",
+      name: "Ink",
+      description: "Editorial black and soft gray",
+      colors: ["#ffffff", "#737373", "#111111"],
+      background: "#111111",
+    },
+  ],
+  "mono-glass": [
+    {
+      id: "slate",
+      name: "Slate",
+      description: "Cool translucent elevation",
+      colors: ["#f9fafb", "#6b7280", "#1f2937"],
+      background: "#374151",
+    },
+  ],
+  "mono-paper": [
+    {
+      id: "paper",
+      name: "Paper",
+      description: "Warm paper and graphite",
+      colors: ["#1c1917", "#a8a29e", "#fafaf9"],
+      background: "#fafaf9",
+    },
   ],
 };
 
@@ -36,23 +135,127 @@ export const defaultPaletteForTheme: Record<string, string> = {
   studio: "champagne",
   canvas: "aurora",
   ledger: "moss",
+  "mono-brutalist": "signal",
+  "mono-chrome": "chrome",
+  "mono-editorial": "ink",
+  "mono-glass": "slate",
+  "mono-paper": "paper",
 };
 
 export const textFinishes: Record<string, readonly TextFinish[]> = {
   studio: [
-    { id: "ivory", name: "Ivory", description: "Original warm editorial", primary: "#f4efeb", muted: "#aab1c5" },
-    { id: "pearl", name: "Pearl", description: "Crisp and contemporary", primary: "#f8fafc", muted: "#b8c4d8" },
-    { id: "parchment", name: "Parchment", description: "Soft literary warmth", primary: "#fff0df", muted: "#cbb9a6" },
+    {
+      id: "ivory",
+      name: "Ivory",
+      description: "Original warm editorial",
+      primary: "#f4efeb",
+      muted: "#aab1c5",
+    },
+    {
+      id: "pearl",
+      name: "Pearl",
+      description: "Crisp and contemporary",
+      primary: "#f8fafc",
+      muted: "#b8c4d8",
+    },
+    {
+      id: "parchment",
+      name: "Parchment",
+      description: "Soft literary warmth",
+      primary: "#fff0df",
+      muted: "#cbb9a6",
+    },
   ],
   canvas: [
-    { id: "polar", name: "Polar", description: "Original luminous white", primary: "#ffffff", muted: "#94a3b8" },
-    { id: "lilac", name: "Lilac", description: "Dreamlike violet light", primary: "#f6efff", muted: "#c4b5fd" },
-    { id: "glacier", name: "Glacier", description: "Cool cinematic clarity", primary: "#ecfeff", muted: "#9edee8" },
+    {
+      id: "polar",
+      name: "Polar",
+      description: "Original luminous white",
+      primary: "#ffffff",
+      muted: "#94a3b8",
+    },
+    {
+      id: "lilac",
+      name: "Lilac",
+      description: "Dreamlike violet light",
+      primary: "#f6efff",
+      muted: "#c4b5fd",
+    },
+    {
+      id: "glacier",
+      name: "Glacier",
+      description: "Cool cinematic clarity",
+      primary: "#ecfeff",
+      muted: "#9edee8",
+    },
   ],
   ledger: [
-    { id: "chalk", name: "Chalk", description: "Original pure contrast", primary: "#ffffff", muted: "#7e7e86" },
-    { id: "mist", name: "Mist", description: "Quiet mineral green", primary: "#e7f0ee", muted: "#8aa09b" },
-    { id: "sand", name: "Sand", description: "Warm restrained neutral", primary: "#f4efe6", muted: "#9f9588" },
+    {
+      id: "chalk",
+      name: "Chalk",
+      description: "Original pure contrast",
+      primary: "#ffffff",
+      muted: "#7e7e86",
+    },
+    {
+      id: "mist",
+      name: "Mist",
+      description: "Quiet mineral green",
+      primary: "#e7f0ee",
+      muted: "#8aa09b",
+    },
+    {
+      id: "sand",
+      name: "Sand",
+      description: "Warm restrained neutral",
+      primary: "#f4efe6",
+      muted: "#9f9588",
+    },
+  ],
+  "mono-brutalist": [
+    {
+      id: "ink",
+      name: "Ink",
+      description: "Maximum readable contrast",
+      primary: "#000000",
+      muted: "#3f3f46",
+    },
+  ],
+  "mono-chrome": [
+    {
+      id: "silver",
+      name: "Silver",
+      description: "Cool metallic clarity",
+      primary: "#ffffff",
+      muted: "#a1a1aa",
+    },
+  ],
+  "mono-editorial": [
+    {
+      id: "pearl",
+      name: "Pearl",
+      description: "Soft editorial contrast",
+      primary: "#ffffff",
+      muted: "#a3a3a3",
+    },
+  ],
+  "mono-glass": [
+    {
+      id: "frost",
+      name: "Frost",
+      description: "Soft glass legibility",
+      primary: "#ffffff",
+      muted: "#d1d5db",
+    },
+  ],
+  "mono-paper": [
+    {
+      id: "graphite",
+      name: "Graphite",
+      description: "Warm print-like contrast",
+      primary: "#1c1917",
+      muted: "#78716c",
+    },
   ],
 };
 
@@ -60,6 +263,11 @@ export const defaultTextFinishForTheme: Record<string, string> = {
   studio: "ivory",
   canvas: "polar",
   ledger: "chalk",
+  "mono-brutalist": "ink",
+  "mono-chrome": "silver",
+  "mono-editorial": "pearl",
+  "mono-glass": "frost",
+  "mono-paper": "graphite",
 };
 
 export function palettesForTheme(theme: string) {
