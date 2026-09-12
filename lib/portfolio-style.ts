@@ -92,6 +92,8 @@ export const portfolioPalettes: Record<string, readonly PortfolioPalette[]> = {
       colors: ["#000000", "#ffffff", "#000000"],
       background: "#ffffff",
     },
+    { id: "redline", name: "Redline", description: "Urgent red on warm white", colors: ["#dc2626", "#111111", "#fffaf2"], background: "#fffaf2" },
+    { id: "cobalt", name: "Cobalt", description: "Electric blue and hard black", colors: ["#1d4ed8", "#050505", "#f8fafc"], background: "#f8fafc" },
   ],
   "mono-chrome": [
     {
@@ -101,6 +103,8 @@ export const portfolioPalettes: Record<string, readonly PortfolioPalette[]> = {
       colors: ["#f4f4f5", "#71717a", "#09090b"],
       background: "#09090b",
     },
+    { id: "graphite", name: "Graphite", description: "Deep mineral gray", colors: ["#e4e4e7", "#52525b", "#18181b"], background: "#18181b" },
+    { id: "pearl", name: "Pearl", description: "Light chrome and soft shadow", colors: ["#27272a", "#a1a1aa", "#fafafa"], background: "#fafafa" },
   ],
   "mono-editorial": [
     {
@@ -110,6 +114,8 @@ export const portfolioPalettes: Record<string, readonly PortfolioPalette[]> = {
       colors: ["#ffffff", "#737373", "#111111"],
       background: "#111111",
     },
+    { id: "oxblood", name: "Oxblood", description: "Literary burgundy restraint", colors: ["#f5f0eb", "#9f6b73", "#260d13"], background: "#260d13" },
+    { id: "midnight", name: "Midnight", description: "Inky blue editorial depth", colors: ["#f8fafc", "#7787a3", "#080d18"], background: "#080d18" },
   ],
   "mono-glass": [
     {
@@ -119,6 +125,8 @@ export const portfolioPalettes: Record<string, readonly PortfolioPalette[]> = {
       colors: ["#f9fafb", "#6b7280", "#1f2937"],
       background: "#374151",
     },
+    { id: "smoke", name: "Smoke", description: "Neutral glass and charcoal", colors: ["#fafafa", "#71717a", "#27272a"], background: "#27272a" },
+    { id: "glacier", name: "Glacier", description: "Icy blue translucent layers", colors: ["#ecfeff", "#67a6b8", "#18313b"], background: "#18313b" },
   ],
   "mono-paper": [
     {
@@ -128,6 +136,8 @@ export const portfolioPalettes: Record<string, readonly PortfolioPalette[]> = {
       colors: ["#1c1917", "#a8a29e", "#fafaf9"],
       background: "#fafaf9",
     },
+    { id: "parchment", name: "Parchment", description: "Warm archival paper", colors: ["#292524", "#a16207", "#f7eedb"], background: "#f7eedb" },
+    { id: "sage", name: "Sage", description: "Calm botanical paper", colors: ["#1c2520", "#6b7c6a", "#eef1e9"], background: "#eef1e9" },
   ],
 };
 
@@ -220,6 +230,8 @@ export const textFinishes: Record<string, readonly TextFinish[]> = {
       primary: "#000000",
       muted: "#3f3f46",
     },
+    { id: "carbon", name: "Carbon", description: "Dense graphic black", primary: "#111111", muted: "#52525b" },
+    { id: "blueprint", name: "Blueprint", description: "Technical cobalt copy", primary: "#172554", muted: "#64748b" },
   ],
   "mono-chrome": [
     {
@@ -229,6 +241,8 @@ export const textFinishes: Record<string, readonly TextFinish[]> = {
       primary: "#ffffff",
       muted: "#a1a1aa",
     },
+    { id: "platinum", name: "Platinum", description: "Bright metallic contrast", primary: "#fafafa", muted: "#d4d4d8" },
+    { id: "charcoal", name: "Charcoal", description: "Soft dark-page typography", primary: "#27272a", muted: "#71717a" },
   ],
   "mono-editorial": [
     {
@@ -238,6 +252,8 @@ export const textFinishes: Record<string, readonly TextFinish[]> = {
       primary: "#ffffff",
       muted: "#a3a3a3",
     },
+    { id: "vellum", name: "Vellum", description: "Warm magazine paper", primary: "#fff7ed", muted: "#c4a79a" },
+    { id: "blueblack", name: "Blue Black", description: "Cool editorial authority", primary: "#eaf0ff", muted: "#94a3b8" },
   ],
   "mono-glass": [
     {
@@ -247,6 +263,8 @@ export const textFinishes: Record<string, readonly TextFinish[]> = {
       primary: "#ffffff",
       muted: "#d1d5db",
     },
+    { id: "ice", name: "Ice", description: "Crisp translucent white", primary: "#ecfeff", muted: "#bae6fd" },
+    { id: "smoke", name: "Smoke", description: "Subdued glass typography", primary: "#f4f4f5", muted: "#a1a1aa" },
   ],
   "mono-paper": [
     {
@@ -256,6 +274,8 @@ export const textFinishes: Record<string, readonly TextFinish[]> = {
       primary: "#1c1917",
       muted: "#78716c",
     },
+    { id: "sepia", name: "Sepia", description: "Warm archival ink", primary: "#3f2d20", muted: "#8b735f" },
+    { id: "forest", name: "Forest", description: "Quiet botanical ink", primary: "#183126", muted: "#617367" },
   ],
 };
 

@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { BarChart3, BriefcaseBusiness, Camera, Check, ChevronRight, CircleDollarSign, Eye, FileText, GraduationCap, HelpCircle, LayoutDashboard, LayoutTemplate, Loader2, Moon, Plus, Rocket, Save, Settings2, ShieldCheck, Sparkles, Sun, Trash2, Upload, UserRound, Wrench, X } from "lucide-react";
+import { AlertCircle, BarChart3, BriefcaseBusiness, Camera, Check, ChevronRight, CircleDollarSign, Copy, ExternalLink, Eye, FileText, GraduationCap, HelpCircle, LayoutDashboard, LayoutTemplate, Loader2, Moon, Plus, Rocket, Save, Settings2, Share2, ShieldCheck, Sparkles, Sun, Trash2, Upload, UserRound, Wrench, X } from "lucide-react";
 import type { ParsedResume } from "@/lib/resume-parser";
 import { PlansPanel } from "@/app/plans-panel";
 import { PortfolioMiniPreview } from "@/app/portfolio-mini-preview";
@@ -20,6 +20,7 @@ import { DashboardPanel } from "@/app/dashboard-panel";
 import { VxlLogo } from "@/app/vxl-logo";
 import { AiWriting } from "@/app/ai-writing";
 import { defaultPaletteForTheme, defaultTextFinishForTheme, palettesForTheme, textFinishesForTheme } from "@/lib/portfolio-style";
+import { PLAN_LIMITS } from "@/lib/plans";
 
 type Experience = {
   id: string;
@@ -230,6 +231,8 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<"success" | "error" | "info">("info");
+  const [publishedUpdates, setPublishedUpdates] = useState<number | null>(null);
   const [resume, setResume] = useState<{
     id: string;
     original_name: string;
@@ -240,6 +243,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
   const fileRef = useRef<HTMLInputElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLElement>(null);
+  const previewRef = useRef<HTMLElement>(null);
   const [uiTheme, setUiTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "light";
     return window.localStorage.getItem("vxl_ui_theme") === "dark" ? "dark" : "light";
@@ -270,6 +274,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
           setSavedAt(String(profile.updatedAt ?? ""));
         }
         setSubscription(result.subscription ?? null);
+        setPublishedUpdates(typeof result.publishedUpdates === "number" ? result.publishedUpdates : null);
         if (result.resumes?.[0]) {
           setResume(result.resumes[0]);
           const extraction = result.resumeExtraction;
@@ -314,6 +319,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
     const payload = "fullName" in payloadOrEvent ? payloadOrEvent : data;
     setSaving(true);
     setNotice("");
+    setNoticeTone("info");
     try {
       const response = await fetch("/api/profile", {
         method: "PUT",
@@ -323,9 +329,11 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(String(result.error || "Could not save changes."));
       setSavedAt(String(result.savedAt ?? ""));
+      setNoticeTone("success");
       setNotice(successMessage);
       return true;
     } catch (error) {
+      setNoticeTone("error");
       setNotice(error instanceof Error ? error.message : "Could not save changes.");
       return false;
     } finally {
@@ -442,6 +450,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
       if (result.unchanged) {
         setNotice("Your live portfolio already matches this draft. No publish allowance was used.");
       } else if (typeof result.limit === "number" && typeof result.remaining === "number") {
+        setPublishedUpdates(Math.max(0, result.limit - result.remaining));
         const reset = result.cycleEndsAt ? ` until ${new Date(String(result.cycleEndsAt)).toLocaleDateString()}` : " this cycle";
         setNotice(`Your latest draft is live. ${result.remaining} of ${result.limit} Live publishing updates remain${reset}.`);
       } else if (result.trialEndsAt) {
@@ -450,21 +459,18 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
         setNotice("Your latest draft is live. Your plan includes unlimited publishing updates.");
       }
     } catch (error) {
+      setNoticeTone("error");
       setNotice(error instanceof Error ? error.message : "Could not publish your portfolio.");
     } finally {
       setSaving(false);
     }
   };
   const preview = async () => {
-    const previewTab = window.open("about:blank", "vxl-portfolio-preview");
     const saved = await save(data, "Latest changes saved. Opening your portfolio preview.");
-    if (!saved) {
-      previewTab?.close();
-      return;
-    }
+    if (!saved) return;
     const url = `/p/${data.portfolioSlug || "preview"}`;
-    if (previewTab) previewTab.location.assign(url);
-    else window.location.assign(url);
+    const previewTab = window.open(url, "vxl-portfolio-preview", "noopener,noreferrer");
+    if (!previewTab) window.location.assign(url);
   };
   const chooseTemplate = async (theme: State["theme"]) => {
     const next = {
@@ -474,7 +480,10 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
       textTone: defaultTextFinishForTheme[theme] ?? "ivory",
     };
     setData(next);
-    await save(next, `${templates.find((template) => template.id === theme)?.name ?? "Portfolio"} template selected and saved.`);
+    const saved = await save(next, `${templates.find((template) => template.id === theme)?.name ?? "Portfolio"} template selected and saved.`);
+    if (saved && window.matchMedia("(max-width: 1180px)").matches) {
+      window.setTimeout(() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    }
   };
   const choosePalette = async (accent: string) => {
     const next = { ...data, accent };
@@ -525,12 +534,12 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
     ]);
   const openTab = (tab: string) => {
     setActiveTab(tab);
-    window.requestAnimationFrame(() =>
-      contentRef.current?.scrollIntoView({
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() =>
+      (document.getElementById(`vxl-section-${tab}`) ?? contentRef.current)?.scrollIntoView({
         behavior: "smooth",
         block: "start",
       }),
-    );
+    ));
   };
   const editorTabs = [
     { id: "profile", label: "Personal", icon: UserRound },
@@ -540,6 +549,23 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
     { id: "publish", label: "Publish", icon: Rocket },
   ];
   const previewVisible = ["profile", "experience", "education", "extras", "templates", "publish"].includes(activeTab);
+  const livePublishLimit = subscription?.plan === "live" ? PLAN_LIMITS.live.published_updates : null;
+  const publishRemaining = livePublishLimit === null || publishedUpdates === null ? null : Math.max(0, livePublishLimit - publishedUpdates);
+  const publicUrl = data.portfolioSlug ? `https://www.thevxl.com/p/${data.portfolioSlug}` : "";
+  const sharePortfolio = async () => {
+    if (!publicUrl) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${data.fullName || "My"} portfolio`, text: "View my portfolio on VXL", url: publicUrl });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+    await navigator.clipboard.writeText(publicUrl);
+    setNoticeTone("success");
+    setNotice("Portfolio link copied. It is ready to share.");
+  };
   if (loading)
     return (
       <main className="vxl-studio-loading">
@@ -662,8 +688,8 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
             </p>
           </div>
           {notice && (
-            <div className="vxl-inline-notice">
-              <Check className="h-4 w-4" />
+            <div className={`vxl-inline-notice is-${noticeTone}`} role={noticeTone === "error" ? "alert" : "status"} aria-live="polite">
+              {noticeTone === "error" ? <AlertCircle className="h-4 w-4" /> : noticeTone === "success" ? <Check className="h-4 w-4" /> : <HelpCircle className="h-4 w-4" />}
               {notice}
             </div>
           )}
@@ -680,10 +706,10 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
               <TabsTrigger value="plans">Plans</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
-            <TabsContent value="dashboard">
+            <TabsContent id="vxl-section-dashboard" value="dashboard">
               <DashboardPanel name={data.fullName || account.name} headline={data.headline} isPublic={data.isPublic} completion={completion} slug={data.portfolioSlug} plan={subscription?.status === "active" ? subscription.plan : "free"} onOpen={openTab} />
             </TabsContent>
-            <TabsContent value="profile">
+            <TabsContent id="vxl-section-profile" value="profile">
               <Section title="Personal profile" description="The essentials recruiters see first.">
                 <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:flex-row sm:items-center">
                   <div className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-600 text-2xl font-bold text-white">
@@ -738,7 +764,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                 <AiWriting headline={data.headline} summary={data.professionalSummary} onApply={(field, value) => update(field === "headline" ? "headline" : "professionalSummary", value)} />
               </Section>
             </TabsContent>
-            <TabsContent value="experience">
+            <TabsContent id="vxl-section-experience" value="experience">
               <CollectionSection title="Work experience" description="Roles, dates, responsibilities and measurable impact." action={() => update("experiences", [...data.experiences, emptyExperience()])} actionLabel="Add experience">
                 {data.experiences.length === 0 ? (
                   <Empty label="No experience added yet" />
@@ -846,7 +872,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                 )}
               </CollectionSection>
             </TabsContent>
-            <TabsContent value="education">
+            <TabsContent id="vxl-section-education" value="education">
               <CollectionSection title="Education" description="Qualifications, institutions, dates and academic highlights." action={() => update("education", [...data.education, emptyEducation()])} actionLabel="Add education">
                 {data.education.length === 0 ? (
                   <Empty label="No education added yet" />
@@ -944,7 +970,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                 )}
               </CollectionSection>
             </TabsContent>
-            <TabsContent value="extras">
+            <TabsContent id="vxl-section-extras" value="extras">
               <Section title="Skills & profile details" description="Everything that gives your work more context.">
                 <div className="flex flex-wrap gap-2">
                   {(["skill", "project", "achievement", "certification", "language", "link"] as Item["itemType"][]).map((type) => (
@@ -1010,7 +1036,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                 </div>
               </Section>
             </TabsContent>
-            <TabsContent value="templates">
+            <TabsContent id="vxl-section-templates" value="templates">
               <Section title="Choose your portfolio world" description="Each design tells the same career differently. All templates are included and adapt with or without a portrait.">
                 <div className="vxl-context-note">
                   <Sparkles />
@@ -1128,11 +1154,18 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                 </div>
               </Section>
             </TabsContent>
-            <TabsContent value="publish">
+            <TabsContent id="vxl-section-publish" value="publish">
               <Section title="Review and publish" description="Save freely in your private draft, then choose when those changes replace the public version.">
                 <PublishStatus subscription={subscription} trialEndsAt={data.trialEndsAt} isPublic={data.isPublic} theme={data.theme} onPlans={() => openTab("plans")} />
                 <Field label="Portfolio address" value={data.portfolioSlug} onChange={(v) => update("portfolioSlug", v.toLowerCase().replace(/[^a-z0-9-]/g, ""))} />
                 <p className="mt-2 text-sm text-slate-500">thevxl.com/p/{data.portfolioSlug || "your-name"}</p>
+                <div className="vxl-context-note mt-4">
+                  <HelpCircle />
+                  <div>
+                    <strong>{subscription?.status === "active" ? `${subscription.plan.toUpperCase()} publishing` : "Free publishing"}</strong>
+                    <p>{subscription?.status !== "active" ? "Your first publish starts a 7-day live period. Draft editing remains free and private." : subscription.plan === "live" && publishRemaining !== null ? `${publishRemaining} of ${livePublishLimit} publishing updates remain in this 28-day allowance.` : "Your active plan includes unlimited publishing updates."}</p>
+                  </div>
+                </div>
                 <div className="mt-6 rounded-xl border border-slate-200 p-4">
                   <p className="text-sm font-semibold">Publishing checklist</p>
                   <div className="mt-3 space-y-2">
@@ -1165,7 +1198,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                   <div className="mt-5 flex flex-wrap gap-3">
                     <Button onClick={publish} disabled={saving}>
                       {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      {data.isPublic ? "Publish saved changes" : data.trialStartedAt ? "Publish portfolio" : "Publish & start free trial"}
+                      {data.isPublic ? `Publish saved changes${publishRemaining !== null ? ` · ${publishRemaining} left` : ""}` : data.trialStartedAt ? "Publish portfolio" : "Publish & start 7 free days"}
                     </Button>
                     {data.isPublic && (
                       <Button variant="outline" className="border-white/20 bg-white/10 text-white hover:bg-white/20" onClick={unpublish} disabled={saving}>
@@ -1178,21 +1211,35 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                     </Button>
                   </div>
                 </div>
+                {data.isPublic && publicUrl && (
+                  <div className="vxl-share-card mt-5">
+                    <div>
+                      <span>SHARE YOUR LIVE PORTFOLIO</span>
+                      <strong>{publicUrl}</strong>
+                      <p>Anyone with this link can view the version you published.</p>
+                    </div>
+                    <div>
+                      <Button variant="outline" onClick={async () => { await navigator.clipboard.writeText(publicUrl); setNoticeTone("success"); setNotice("Portfolio link copied. It is ready to share."); }}><Copy />Copy link</Button>
+                      <Button onClick={sharePortfolio}><Share2 />Share</Button>
+                      <Button variant="ghost" asChild><a href={publicUrl} target="_blank" rel="noreferrer"><ExternalLink />Open</a></Button>
+                    </div>
+                  </div>
+                )}
               </Section>
             </TabsContent>
-            <TabsContent value="plans">
+            <TabsContent id="vxl-section-plans" value="plans">
               <PlansPanel email={data.email || account.email} />
             </TabsContent>
-            <TabsContent value="analytics">
+            <TabsContent id="vxl-section-analytics" value="analytics">
               <AnalyticsPanel />
             </TabsContent>
-            <TabsContent value="settings">
+            <TabsContent id="vxl-section-settings" value="settings">
               <SettingsPanel email={account.email} onRestored={() => window.location.reload()} />
             </TabsContent>
           </Tabs>
         </section>
         {previewVisible && (
-          <aside className="vxl-preview-column">
+          <aside ref={previewRef} className="vxl-preview-column">
             <div className="vxl-preview-shell">
               <div className="vxl-preview-bar">
                 <span>

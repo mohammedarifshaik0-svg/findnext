@@ -28,7 +28,17 @@ export async function GET() {
   ]);
   const failed = [experiences.error, education.error, items.error, resumes.error, subscription.error, extraction.error].find(Boolean);
   if (failed) return Response.json({ error: failed.message }, { status: 500 });
-  return Response.json({ profile, experiences: experiences.data, education: education.data, items: items.data, resumes: resumes.data, subscription: subscription.data, resumeExtraction: extraction.data });
+  let publishedUpdates: number | null = null;
+  if (subscription.data?.status === "active" && subscription.data.period_starts_at && subscription.data.period_ends_at) {
+    const start = new Date(subscription.data.period_starts_at).getTime();
+    const end = new Date(subscription.data.period_ends_at).getTime();
+    const cycleMs = 28 * 86_400_000;
+    const cycleStart = new Date(start + Math.max(0, Math.floor((Math.min(Date.now(), end) - start) / cycleMs)) * cycleMs);
+    const cycleEnd = new Date(Math.min(end, cycleStart.getTime() + cycleMs));
+    const { data: events } = await supabase.from("subscription_usage_events").select("units").eq("profile_id", userId).eq("entitlement", "published_updates").gte("occurred_at", cycleStart.toISOString()).lt("occurred_at", cycleEnd.toISOString());
+    publishedUpdates = (events ?? []).reduce((total, event) => total + (Number(event.units) || 0), 0);
+  }
+  return Response.json({ profile, experiences: experiences.data, education: education.data, items: items.data, resumes: resumes.data, subscription: subscription.data, publishedUpdates, resumeExtraction: extraction.data });
 }
 
 export async function PUT(request: Request) {
@@ -41,7 +51,10 @@ export async function PUT(request: Request) {
   // Profile entitlement fields are not client-writable. This authenticated route
   // performs the narrow server-side draft write after binding the row to userId.
   const { error: profileError } = await createAdminClient().from("profiles").upsert(profile);
-  if (profileError) return Response.json({ error: "Could not save your portfolio right now." }, { status: 503 });
+  if (profileError) {
+    console.error("[vxl-profile] profile_upsert_failed", { code: profileError.code, message: profileError.message, details: profileError.details });
+    return Response.json({ error: "Could not save your portfolio right now. Please retry; if it continues, contact hello@thevxl.com." }, { status: 503 });
+  }
   const { error: deleteError } = await supabase.from("experiences").delete().eq("profile_id", userId); if (deleteError) return Response.json({ error: "Could not save your portfolio sections." }, { status: 503 });
   const [educationDelete, itemsDelete] = await Promise.all([
     supabase.from("education").delete().eq("profile_id", userId),
