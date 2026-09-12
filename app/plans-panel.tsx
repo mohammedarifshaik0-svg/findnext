@@ -346,7 +346,7 @@ export function PlansPanel({ email }: { email: string }) {
             return (
               <article
                 key={plan.id}
-                className={`relative rounded-2xl border p-5 ${
+                className={`vxl-plan-card relative rounded-2xl border p-5 ${
                   isCurrent
                     ? "border-emerald-300 bg-emerald-50/50"
                     : plan.featured
@@ -382,9 +382,9 @@ export function PlansPanel({ email }: { email: string }) {
                 <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-xs leading-5 text-slate-600"><strong>Best for:</strong> {plan.bestFor}</p>
                 <ul className="mt-5 space-y-2">
                   {plan.features.map((feature) => (
-                    <li key={feature.label} className={`flex gap-2 text-sm ${feature.included ? "text-slate-800" : "text-slate-400"}`}>
-                      {feature.included ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> : <X className="mt-0.5 h-4 w-4 shrink-0" />}
-                      <span><strong className="font-medium">{feature.label}</strong><span className="block text-xs leading-5 opacity-80">{feature.detail}</span></span>
+                    <li key={feature.label} className={`flex gap-2 text-sm ${feature.comingSoon ? "text-indigo-800" : feature.included ? "text-slate-800" : "text-slate-400"}`}>
+                      {feature.comingSoon ? <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" /> : feature.included ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> : <X className="mt-0.5 h-4 w-4 shrink-0" />}
+                      <span><strong className="font-medium">{feature.label}{feature.comingSoon && <Badge variant="outline" className="ml-2 border-indigo-200 bg-indigo-50 text-[9px] text-indigo-700">Coming soon</Badge>}</strong><span className="block text-xs leading-5 opacity-80">{feature.detail}</span></span>
                     </li>
                   ))}
                 </ul>

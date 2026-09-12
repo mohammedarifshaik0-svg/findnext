@@ -19,6 +19,9 @@ const templateCards = [
   { name: "Editorial", type: "Story-led", className: "template-editorial" },
   { name: "Prism", type: "Expressive", className: "template-prism" },
   { name: "Zen", type: "Precise", className: "template-zen" },
+  { name: "Mono Brutalist", type: "High-impact", className: "template-brutalist" },
+  { name: "Mono Chrome", type: "Technical", className: "template-chrome" },
+  { name: "Mono Editorial", type: "Structured", className: "template-editorial" },
 ];
 const featureCards = [
   { icon: FileText, number: "01", title: "Resume intelligence", copy: "Upload a PDF or DOCX. VXL extracts the details and gives you a structured draft to review." },
@@ -29,9 +32,9 @@ const featureCards = [
   { icon: BarChart3, number: "06", title: "Know what connects", copy: "Understand how people discover and experience your portfolio as VXL grows with you." },
 ];
 const plans = [
-  { name: "Live", price: "₹99", note: "For a finished story that changes occasionally.", features: ["1 portfolio live", "2 published changes", "1 résumé re-import"] },
-  { name: "Flex", price: "₹199", note: "For active careers that keep moving.", featured: true, features: ["Unlimited publishing", "5 résumé re-imports", "Custom domain"] },
-  { name: "Care", price: "₹499", note: "For a premium result with a human beside you.", features: ["Everything in Flex", "10 résumé re-imports", "1 managed update"] },
+  { name: "Live", price: "₹99", note: "For a finished story that changes occasionally.", features: [{label:"1 portfolio live"},{label:"2 published changes"},{label:"1 résumé re-import"}] },
+  { name: "Flex", price: "₹199", note: "For active careers that keep moving.", featured: true, features: [{label:"Unlimited publishing"},{label:"5 résumé re-imports"},{label:"Custom domain",comingSoon:true}] },
+  { name: "Care", price: "₹499", note: "For a premium result with a human beside you.", features: [{label:"Everything currently in Flex"},{label:"10 résumé re-imports"},{label:"1 managed update"},{label:"Guided custom domain",comingSoon:true}] },
 ];
 
 export function AuthPanel() {
@@ -113,7 +116,7 @@ export function AuthPanel() {
 
     <section id="templates" className="vxl-section vxl-template-section">
       <div className="vxl-section-heading"><span>DESIGN WITHOUT A PAYWALL</span><h2>Templates that feel authored.</h2><p>Every visual world is included. Colour, type and intensity make it personal.</p></div>
-      <div className="vxl-template-grid">{templateCards.map((template,index)=><article key={template.name} className={template.className}><div className="vxl-template-browser"><div><i/><i/><i/></div><main><small>{String(index+1).padStart(2,"0")} / SELECTED WORK</small><b>{index===0?"A record of meaningful change.":index===1?"Ideas in motion.":"Clarity over noise."}</b><span/><span/></main></div><footer><div><h3>{template.name}</h3><p>{template.type}</p></div><span>Included</span></footer></article>)}</div>
+      <div className="vxl-template-grid">{templateCards.map((template,index)=><article key={template.name} className={template.className}><div className="vxl-template-browser"><div><i/><i/><i/></div><main><small>{String(index+1).padStart(2,"0")} / SELECTED WORK</small><b>{index===0?"A record of meaningful change.":index===1?"Ideas in motion.":index===3?"Make the point. Leave the noise.":"Clarity over noise."}</b><span/><span/></main></div><footer><div><h3>{template.name}</h3><p>{template.type}</p></div><span>Included</span></footer></article>)}</div>
       <button className="vxl-quiet-button centered" onClick={() => openAuth("signup")}>See them with your story <ArrowRight/></button>
     </section>
 
@@ -133,7 +136,8 @@ export function AuthPanel() {
 
     <section id="pricing" className="vxl-section vxl-pricing-section">
       <div className="vxl-section-heading"><span>SIMPLE, TRANSPARENT PLANS</span><h2>Start light. Grow when you need.</h2><p>All prices are for 28 days. Your seven-day trial starts only when you publish.</p></div>
-      <div className="vxl-pricing-grid">{plans.map(plan=><article key={plan.name} className={plan.featured?"featured":""}>{plan.featured&&<div className="vxl-popular">MOST FLEXIBLE</div>}<span>{plan.name}</span><h3>{plan.price}<small>/28 days</small></h3><p>{plan.note}</p><ul>{plan.features.map(feature=><li key={feature}><Check/>{feature}</li>)}</ul><button className={plan.featured?"vxl-chrome-button":"vxl-quiet-button"} onClick={() => openAuth("signup")}>Choose {plan.name}<ArrowRight/></button></article>)}</div>
+      <div className="vxl-pricing-trust"><span><ShieldCheck/>7 free days start on first publish</span><span><Check/>No card required to build</span><span><Check/>Draft stays saved after expiry</span></div>
+      <div className="vxl-pricing-grid">{plans.map(plan=><article key={plan.name} className={plan.featured?"featured":""}>{plan.featured&&<div className="vxl-popular">MOST FLEXIBLE</div>}<span>{plan.name}</span><h3>{plan.price}<small>/28 days</small></h3><p>{plan.note}</p><ul>{plan.features.map(feature=><li key={feature.label} className={feature.comingSoon?"is-coming-soon":""}><Check/>{feature.label}{feature.comingSoon&&<small>COMING SOON</small>}</li>)}</ul><button className={plan.featured?"vxl-chrome-button":"vxl-quiet-button"} onClick={() => openAuth("signup")}>Choose {plan.name}<ArrowRight/></button></article>)}</div>
       <p className="vxl-pricing-note">Every plan includes every template, palette, typeface and effect. We charge for keeping your presence live—not for good taste.</p>
       <p className="vxl-compliance-note">By purchasing a VXL plan, you agree to our <Link href="/terms">Terms &amp; Conditions</Link> and <Link href="/refund-policy">Refund &amp; Cancellation Policy</Link>.</p>
     </section>
