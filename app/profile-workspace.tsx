@@ -19,7 +19,7 @@ import { SettingsPanel } from "@/app/settings-panel";
 import { DashboardPanel } from "@/app/dashboard-panel";
 import { VxlLogo } from "@/app/vxl-logo";
 import { AiWriting } from "@/app/ai-writing";
-import { defaultPaletteForTheme, defaultTextFinishForTheme, palettesForTheme, textFinishesForTheme } from "@/lib/portfolio-style";
+import { defaultPaletteForTheme, defaultTextFinishForTheme, palettesForTheme, portfolioStyle, textFinishesForTheme } from "@/lib/portfolio-style";
 import { PLAN_LIMITS } from "@/lib/plans";
 
 type Experience = {
@@ -466,11 +466,22 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
     }
   };
   const preview = async () => {
+    const previewTab = window.open("about:blank", "_blank");
+    if (!previewTab) {
+      setNoticeTone("error");
+      setNotice("Your browser blocked the preview tab. Allow pop-ups for thevxl.com, then try again.");
+      return;
+    }
+    previewTab.opener = null;
+    previewTab.document.title = "Opening VXL preview…";
+    previewTab.document.body.innerHTML = '<main style="min-height:100vh;display:grid;place-items:center;background:#09090b;color:#fafafa;font:600 14px Inter,Arial,sans-serif;letter-spacing:.04em">Preparing your VXL preview…</main>';
     const saved = await save(data, "Latest changes saved. Opening your portfolio preview.");
-    if (!saved) return;
+    if (!saved) {
+      previewTab.close();
+      return;
+    }
     const url = `/p/${data.portfolioSlug || "preview"}`;
-    const previewTab = window.open(url, "vxl-portfolio-preview", "noopener,noreferrer");
-    if (!previewTab) window.location.assign(url);
+    previewTab.location.replace(url);
   };
   const chooseTemplate = async (theme: State["theme"]) => {
     const next = {
@@ -1110,13 +1121,16 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                   <div className="mt-6">
                     <p className="text-xs font-semibold uppercase tracking-[.14em] text-slate-500">Text finish</p>
                     <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                      {textFinishesForTheme(data.theme).map((finish) => (
+                      {textFinishesForTheme(data.theme).map((finish) => {
+                        const previewColors = portfolioStyle(data.theme, data.accent, data.effectIntensity, finish.id) as Record<`--portfolio-${string}`, string>;
+                        return (
                         <button type="button" key={finish.id} onClick={() => chooseTextFinish(finish.id)} disabled={saving} aria-pressed={data.textTone === finish.id} className={`flex items-center gap-3 rounded-xl border bg-white p-3 text-left transition ${data.textTone === finish.id ? "border-indigo-600 ring-2 ring-indigo-100" : "border-slate-200 hover:border-slate-300"}`}>
                           <span
                             className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-xl font-semibold"
                             style={{
-                              color: finish.primary,
-                              backgroundColor: "#0b1020",
+                              color: String(previewColors["--portfolio-text"]),
+                              backgroundColor: String(previewColors["--portfolio-bg"]),
+                              border: `1px solid ${String(previewColors["--portfolio-muted"])}55`,
                               textShadow: `0 0 18px ${finish.muted}55`,
                             }}
                           >
@@ -1128,7 +1142,8 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
                           </span>
                           {data.textTone === finish.id && <Check className="ml-auto h-4 w-4 shrink-0 text-indigo-600" />}
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                   <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">

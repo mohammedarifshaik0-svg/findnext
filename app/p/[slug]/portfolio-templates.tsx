@@ -475,21 +475,23 @@ function ZenTemplate({ data }: { data: PortfolioData }) {
   const { profile, experiences, education, items } = data;
   const { skills, projects, achievements, links } = groups(items);
   const name = value(profile.full_name);
+  const isLight = value(profile.theme) === "mono-brutalist";
+  const line = "border-[color:color-mix(in_srgb,var(--portfolio-text)_18%,transparent)]";
   return (
     <main className="portfolio-surface min-h-screen bg-[var(--portfolio-bg)] text-[var(--portfolio-text)] [font-family:'Helvetica_Neue',Arial,sans-serif]" style={portfolioStyle(value(profile.theme) || "ledger", value(profile.accent), Number(profile.effect_intensity ?? 65), value(profile.text_tone))}>
       <div className="portfolio-atmosphere" />
-      <nav className="flex items-center justify-between border-b border-[#1c1c1f] px-6 py-7 sm:px-10 lg:px-20">
+      <nav className={`flex items-center justify-between border-b px-6 py-7 sm:px-10 lg:px-20 ${line}`}>
         <span className="text-sm font-semibold lowercase">{name} · portfolio</span>
-        <ExternalLinks links={links} className="text-[#7e7e86] hover:text-white" />
+        <ExternalLinks links={links} className="text-[var(--portfolio-muted)] hover:text-[var(--portfolio-accent)]" />
       </nav>
-      <header className={`grid min-h-[720px] border-b border-[#1c1c1f] ${profile.photo_path ? "lg:grid-cols-[1fr_.62fr]" : ""}`}>
+      <header className={`grid min-h-[720px] border-b ${line} ${profile.photo_path ? "lg:grid-cols-[1fr_.62fr]" : ""}`}>
         <div className="flex flex-col justify-center px-6 py-24 sm:px-10 lg:px-20">
-          <p className="text-xs tracking-[.25em] text-[#829579]">[ PROFILE / ACTIVE ]</p>
+          <p className="text-xs tracking-[.25em] text-[var(--portfolio-accent)]">[ PROFILE / ACTIVE ]</p>
           <h1 className="mt-7 max-w-5xl text-6xl font-bold leading-[.95] tracking-[-.055em] sm:text-8xl">{value(profile.headline) || name}</h1>
-          {value(profile.headline) && <p className="mt-8 text-xl text-[#7e7e86]">{name}</p>}
-          <p className="mt-10 max-w-3xl whitespace-pre-line text-lg leading-8 text-[#8b8b93]">{value(profile.professional_summary)}</p>
+          {value(profile.headline) && <p className="mt-8 text-xl text-[var(--portfolio-muted)]">{name}</p>}
+          <p className="mt-10 max-w-3xl whitespace-pre-line text-lg leading-8 text-[var(--portfolio-muted)]">{value(profile.professional_summary)}</p>
           <div className="mt-9">
-            <PortfolioActions profile={profile} tone="dark" />
+            <PortfolioActions profile={profile} tone={isLight ? "light" : "dark"} />
           </div>
         </div>
         {profile.photo_path && (
@@ -500,22 +502,22 @@ function ZenTemplate({ data }: { data: PortfolioData }) {
         )}
       </header>
 
-      <section className="grid border-b border-[#1c1c1f] px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28">
-        <p className="text-xs tracking-[.2em] text-[#829579]">01 / ORIENTATION</p>
+      <section className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
+        <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">01 / ORIENTATION</p>
         <div>
           <p className="max-w-4xl text-2xl leading-10">“Good work removes noise until the contribution becomes unmistakable.”</p>
-          <div className="mt-6 max-w-3xl whitespace-pre-line text-base leading-8 text-[#7e7e86]">{value(profile.professional_summary)}</div>
+          <div className="mt-6 max-w-3xl whitespace-pre-line text-base leading-8 text-[var(--portfolio-muted)]">{value(profile.professional_summary)}</div>
         </div>
       </section>
 
       {skills.length > 0 && (
-        <section className="grid border-b border-[#1c1c1f] px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28">
-          <p className="text-xs tracking-[.2em] text-[#829579]">02 / CAPABILITY</p>
-          <div className="divide-y divide-[#1c1c1f] border-y border-[#1c1c1f]">
+        <section className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
+          <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">02 / CAPABILITY</p>
+          <div className={`divide-y border-y ${line}`}>
             {skills.map((skill, index) => (
               <div key={value(skill.id)} className="flex items-center justify-between gap-5 py-5">
                 <span className="text-sm font-medium">{value(skill.title)}</span>
-                <span className="text-xs text-[#525258]">{String(index + 1).padStart(2, "0")}</span>
+                <span className="text-xs text-[var(--portfolio-muted)]">{String(index + 1).padStart(2, "0")}</span>
               </div>
             ))}
           </div>
@@ -523,18 +525,18 @@ function ZenTemplate({ data }: { data: PortfolioData }) {
       )}
 
       {projects.length > 0 && (
-        <section className="border-b border-[#1c1c1f] py-24">
+        <section className={`border-b py-24 ${line}`}>
           <div className="px-6 sm:px-10 lg:px-20">
-            <p className="text-xs tracking-[.2em] text-[#829579]">03 / SELECTED WORK</p>
+            <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">03 / SELECTED WORK</p>
             <h2 className="mt-4 text-4xl font-semibold tracking-[-.04em]">Artifacts with a reason to exist</h2>
           </div>
-          <div className="mt-12 divide-y divide-[#1c1c1f] border-y border-[#1c1c1f]">
+          <div className={`mt-12 divide-y border-y ${line}`}>
             {projects.map((project, index) => (
-              <article key={value(project.id)} className="group grid items-center gap-8 px-6 py-12 transition hover:bg-[#080808] sm:px-10 lg:grid-cols-[1fr_.72fr] lg:px-20">
+              <article key={value(project.id)} className="group grid items-center gap-8 px-6 py-12 transition hover:bg-[color:color-mix(in_srgb,var(--portfolio-text)_7%,transparent)] sm:px-10 lg:grid-cols-[1fr_.72fr] lg:px-20">
                 <div>
-                  <p className="text-xs text-[#829579]">{value(project.subtitle) || `Project ${String(index + 1).padStart(2, "0")}`}</p>
+                  <p className="text-xs text-[var(--portfolio-accent)]">{value(project.subtitle) || `Project ${String(index + 1).padStart(2, "0")}`}</p>
                   <h3 className="mt-3 text-3xl font-semibold">{value(project.title)}</h3>
-                  <p className="mt-5 max-w-xl leading-7 text-[#7e7e86]">{value(project.description)}</p>
+                  <p className="mt-5 max-w-xl leading-7 text-[var(--portfolio-muted)]">{value(project.description)}</p>
                   {project.url && (
                     <a className="mt-6 inline-flex items-center gap-2 text-sm underline underline-offset-4" href={value(project.url)} target="_blank" rel="noreferrer">
                       View project <ArrowUpRight className="h-4 w-4" />
@@ -552,18 +554,18 @@ function ZenTemplate({ data }: { data: PortfolioData }) {
       )}
 
       {experiences.length > 0 && (
-        <section className="grid border-b border-[#1c1c1f] px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28">
-          <p className="text-xs tracking-[.2em] text-[#829579]">04 / CHRONOLOGY</p>
+        <section className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
+          <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">04 / CHRONOLOGY</p>
           <div className="space-y-12">
             {experiences.map((row) => (
               <article key={value(row.id)} className="grid gap-4 sm:grid-cols-[150px_1fr]">
-                <p className="text-sm text-[#55555c]">{years(row)}</p>
+                <p className="text-sm text-[var(--portfolio-muted)]">{years(row)}</p>
                 <div>
                   <h3 className="text-xl font-semibold">
-                    {value(row.company)} <span className="font-normal text-[#7e7e86]">/ {value(row.role)}</span>
+                    {value(row.company)} <span className="font-normal text-[var(--portfolio-muted)]">/ {value(row.role)}</span>
                   </h3>
                   {Boolean(row.description) && (
-                    <ul className="mt-4 space-y-2 text-sm leading-7 text-[#7e7e86]">
+                    <ul className="mt-4 space-y-2 text-sm leading-7 text-[var(--portfolio-muted)]">
                       {lines(row.description).map((line) => (
                         <li key={line}>{line}</li>
                       ))}
@@ -577,8 +579,8 @@ function ZenTemplate({ data }: { data: PortfolioData }) {
       )}
 
       {achievements.length > 0 && (
-        <section className="grid border-b border-[#1c1c1f] px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28">
-          <p className="text-xs tracking-[.2em] text-[#829579]">05 / SIGNALS</p>
+        <section className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
+          <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">05 / SIGNALS</p>
           <div className="space-y-8">
             {achievements.map((achievement) => (
               <p key={value(achievement.id)} className="max-w-4xl text-2xl leading-10">
@@ -590,14 +592,14 @@ function ZenTemplate({ data }: { data: PortfolioData }) {
       )}
 
       {education.length > 0 && (
-        <section className="grid border-b border-[#1c1c1f] px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28">
-          <p className="text-xs tracking-[.2em] text-[#829579]">06 / FOUNDATION</p>
+        <section className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
+          <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">06 / FOUNDATION</p>
           <div className="grid gap-10 md:grid-cols-2">
             {education.map((row) => (
               <article key={value(row.id)}>
-                <p className="text-xs text-[#55555c]">{years(row)}</p>
+                <p className="text-xs text-[var(--portfolio-muted)]">{years(row)}</p>
                 <h3 className="mt-3 text-xl font-semibold">{value(row.qualification)}</h3>
-                <p className="mt-2 text-sm text-[#7e7e86]">{value(row.institution)}</p>
+                <p className="mt-2 text-sm text-[var(--portfolio-muted)]">{value(row.institution)}</p>
               </article>
             ))}
           </div>
@@ -605,13 +607,13 @@ function ZenTemplate({ data }: { data: PortfolioData }) {
       )}
 
       <footer className="px-6 py-28 text-center sm:px-10 lg:py-36">
-        <p className="text-xs tracking-[.2em] text-[#829579]">07 / CONNECTION</p>
+        <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">07 / CONNECTION</p>
         <h2 className="mt-6 break-words text-4xl font-semibold tracking-[-.04em] sm:text-6xl">{value(profile.email)}</h2>
-        <p className="mt-4 text-sm text-[#55555c]">A simple hello is enough to begin.</p>
+        <p className="mt-4 text-sm text-[var(--portfolio-muted)]">A simple hello is enough to begin.</p>
         <div className="mt-9 flex justify-center">
-          <PortfolioActions profile={profile} tone="dark" />
+          <PortfolioActions profile={profile} tone={isLight ? "light" : "dark"} />
         </div>
-        <p className="mt-20 text-xs text-[#2d2d32]">Made with VXL</p>
+        <p className="mt-20 text-xs text-[var(--portfolio-muted)]">Made with VXL</p>
       </footer>
     </main>
   );
