@@ -45,6 +45,7 @@ export const PLANS: Array<{
       { label: "Version history", detail: "Latest published version only", included: true },
       { label: "Custom domain", detail: "Not included", included: false },
       { label: "Managed updates", detail: "Not included", included: false },
+      { label: "VXL wordmark", detail: "Small “Made with VXL” mark at the bottom", included: true },
     ],
   },
   {
@@ -61,6 +62,7 @@ export const PLANS: Array<{
       { label: "AI writing", detail: "30 fact-checked improvements every 28 days", included: true },
       { label: "Analytics", detail: "Detailed insights for 90 days", included: true },
       { label: "Version history", detail: "Restore versions from 90 days", included: true },
+      { label: "Brand-free portfolio", detail: "No VXL wordmark", included: true },
       { label: "Custom domain", detail: "Connection workflow is being built", included: false, comingSoon: true },
       { label: "Priority support", detail: "Faster email support", included: true },
       { label: "Managed updates", detail: "Not included", included: false },
@@ -79,6 +81,7 @@ export const PLANS: Array<{
       { label: "Analytics", detail: "Detailed insights for 1 year", included: true },
       { label: "Version history", detail: "Restore versions from 1 year", included: true },
       { label: "Managed update", detail: "1 request every 28 days", included: true },
+      { label: "Brand-free portfolio", detail: "No VXL wordmark", included: true },
       { label: "Custom domain setup", detail: "Guided connection is being built", included: false, comingSoon: true },
       { label: "Personal priority help", detail: "Real human support", included: true },
     ],

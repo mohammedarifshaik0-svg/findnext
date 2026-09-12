@@ -25,26 +25,14 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase() || "YN";
 
-export function PortfolioMiniPreview({ data, activeSection = "profile" }: { data: PreviewData; activeSection?: string }) {
+export function PortfolioMiniPreview({ data, showWordmark = true }: { data: PreviewData; showWordmark?: boolean }) {
   const palette = paletteFor(data.theme, data.accent);
   const style = portfolioStyle(data.theme, data.accent, data.effectIntensity, data.textTone);
   const atmosphere = {
     backgroundImage: `radial-gradient(circle at 50% 8%, ${palette.colors[1]}88, transparent 34%), radial-gradient(circle at 0% 75%, ${palette.colors[0]}55, transparent 32%), radial-gradient(circle at 100% 70%, ${palette.colors[2]}55, transparent 32%)`,
     opacity: Math.max(0.08, data.effectIntensity / 100),
   };
-  const offsets: Record<string, number> = {
-    profile: 0,
-    templates: 0,
-    publish: 0,
-    extras: 250,
-    experience: 430,
-    education: 650,
-  };
-  const focusStyle = {
-    ...style,
-    transform: `translateY(-${offsets[activeSection] ?? 0}px)`,
-    transition: "transform 650ms cubic-bezier(.2,.8,.2,1)",
-  };
+  const focusStyle = style;
   if (["canvas", "mono-chrome", "mono-glass"].includes(data.theme))
     return (
       <div className="relative min-h-[1150px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]" style={focusStyle}>
@@ -91,10 +79,11 @@ export function PortfolioMiniPreview({ data, activeSection = "profile" }: { data
             </div>
           ))}
         </div>
+        {showWordmark && <p className="relative mt-20 text-center text-[9px] text-[var(--portfolio-muted)]">Made with VXL</p>}
       </div>
     );
 
-  if (["ledger", "mono-brutalist", "mono-editorial"].includes(data.theme))
+  if (["ledger", "mono-brutalist", "mono-editorial", "mono-paper"].includes(data.theme))
     return (
       <div className="relative min-h-[1150px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]" style={focusStyle}>
         <div
@@ -105,49 +94,50 @@ export function PortfolioMiniPreview({ data, activeSection = "profile" }: { data
           }}
         />
         <div className="relative">
-          <div className="flex items-center justify-between border-b border-[#1c1c1f] pb-5">
+          <div className="flex items-center justify-between border-b border-[color:color-mix(in_srgb,var(--portfolio-text)_18%,transparent)] pb-5">
             <p className="text-[10px] font-semibold lowercase">{data.fullName || "your name"} · portfolio</p>
-            <span className="text-[9px] text-[#829579]">active</span>
+            <span className="text-[9px] text-[var(--portfolio-accent)]">active</span>
           </div>
-          <p className="mt-14 text-[9px] tracking-[.2em] text-[#829579]">[ PROFILE / ACTIVE ]</p>
+          <p className="mt-14 text-[9px] tracking-[.2em] text-[var(--portfolio-accent)]">[ PROFILE / ACTIVE ]</p>
           <h2 className="mt-5 text-4xl font-bold leading-[.95] tracking-[-.055em]">{data.headline || data.fullName || "Professional story"}</h2>
-          {data.headline && <p className="mt-4 text-xs text-[#7e7e86]">{data.fullName}</p>}
-          <p className="mt-7 line-clamp-5 text-xs leading-5 text-[#7e7e86]">{data.professionalSummary || "Your professional story will appear here."}</p>
-          <div className="mt-12 grid grid-cols-[75px_1fr] gap-5 border-y border-[#1c1c1f] py-7">
-            <p className="text-[8px] tracking-[.16em] text-[#829579]">CAPABILITY</p>
+          {data.headline && <p className="mt-4 text-xs text-[var(--portfolio-muted)]">{data.fullName}</p>}
+          <p className="mt-7 line-clamp-5 text-xs leading-5 text-[var(--portfolio-muted)]">{data.professionalSummary || "Your professional story will appear here."}</p>
+          <div className="mt-12 grid grid-cols-[75px_1fr] gap-5 border-y border-[color:color-mix(in_srgb,var(--portfolio-text)_18%,transparent)] py-7">
+            <p className="text-[8px] tracking-[.16em] text-[var(--portfolio-accent)]">CAPABILITY</p>
             <div>
               {skills(data).map((skill, index) => (
-                <div key={skill.id} className="flex justify-between border-b border-[#1c1c1f] py-2 first:pt-0">
+                <div key={skill.id} className="flex justify-between border-b border-[color:color-mix(in_srgb,var(--portfolio-text)_18%,transparent)] py-2 first:pt-0">
                   <span className="text-[10px]">{skill.title}</span>
-                  <span className="text-[8px] text-[#444]">0{index + 1}</span>
+                  <span className="text-[8px] text-[var(--portfolio-muted)]">0{index + 1}</span>
                 </div>
               ))}
             </div>
           </div>
           <div className="mt-9">
-            <p className="text-[8px] tracking-[.16em] text-[#829579]">CHRONOLOGY</p>
+            <p className="text-[8px] tracking-[.16em] text-[var(--portfolio-accent)]">CHRONOLOGY</p>
             {data.experiences.slice(0, 2).map((row) => (
               <div key={row.id} className="mt-4 grid grid-cols-[1fr_2fr] gap-3">
-                <p className="text-[9px] text-[#555]">record</p>
+                <p className="text-[9px] text-[var(--portfolio-muted)]">record</p>
                 <div>
                   <p className="text-xs font-semibold">{row.company || "Company"}</p>
-                  <p className="text-[10px] text-[#777]">{row.role || "Role"}</p>
+                  <p className="text-[10px] text-[var(--portfolio-muted)]">{row.role || "Role"}</p>
                 </div>
               </div>
             ))}
           </div>
-          <div className="mt-12 border-t border-[#1c1c1f] pt-7">
-            <p className="text-[8px] tracking-[.16em] text-[#829579]">EDUCATION</p>
+          <div className="mt-12 border-t border-[color:color-mix(in_srgb,var(--portfolio-text)_18%,transparent)] pt-7">
+            <p className="text-[8px] tracking-[.16em] text-[var(--portfolio-accent)]">EDUCATION</p>
             {data.education.slice(0, 2).map((row) => (
               <div key={row.id} className="mt-4 grid grid-cols-[1fr_2fr] gap-3">
-                <p className="text-[9px] text-[#555]">study</p>
+                <p className="text-[9px] text-[var(--portfolio-muted)]">study</p>
                 <div>
                   <p className="text-xs font-semibold">{row.qualification || "Qualification"}</p>
-                  <p className="text-[10px] text-[#777]">{row.institution || "Institution"}</p>
+                  <p className="text-[10px] text-[var(--portfolio-muted)]">{row.institution || "Institution"}</p>
                 </div>
               </div>
             ))}
           </div>
+          {showWordmark && <p className="mt-20 text-center text-[9px] text-[var(--portfolio-muted)]">Made with VXL</p>}
         </div>
       </div>
     );
@@ -201,6 +191,7 @@ export function PortfolioMiniPreview({ data, activeSection = "profile" }: { data
             </div>
           ))}
         </div>
+        {showWordmark && <p className="mt-20 text-center text-[9px] text-[var(--portfolio-muted)]">Made with VXL</p>}
       </div>
     </div>
   );

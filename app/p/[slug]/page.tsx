@@ -19,5 +19,5 @@ export default async function PortfolioPage({ params }: { params: Promise<{ slug
   const { slug } = await params;
   const data = await getPortfolio(slug);
   if (!data) return <main className="grid min-h-screen place-items-center bg-slate-950 px-6 text-white"><div className="max-w-md text-center"><p className="text-sm font-semibold uppercase tracking-[.2em] text-indigo-300">VXL</p><h1 className="mt-4 text-4xl font-semibold tracking-[-.04em]">This portfolio isn’t available.</h1><p className="mt-4 leading-7 text-slate-400">The owner may still be reviewing it, or its access period may have ended.</p></div></main>;
-  return <>{!data.isOwner && <PortfolioViewTracker slug={slug} />}<PortfolioTemplate data={data.data} /></>;
+  return <>{!data.isOwner && <PortfolioViewTracker slug={slug} />}<PortfolioTemplate data={data.data} showWordmark={data.showWordmark} /></>;
 }

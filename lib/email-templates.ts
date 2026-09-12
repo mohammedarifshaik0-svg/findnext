@@ -12,9 +12,9 @@ export function purchaseActivatedEmail(plan: string, purchaseId: string) {
 type PlanEmailInput = { name: string; requestId: string; plan: string; cycle: string; amount: string; summary?: string; benefits?: readonly string[] };
 
 const planBenefits: Record<string, readonly string[]> = {
-  LIVE: ["One portfolio hosted on your VXL address", "Every template, palette, typeface and visual effect", "2 published updates and 1 résumé re-import every 28 days", "3 fact-checked AI writing improvements every 28 days", "Lifetime visit total and latest published version"],
-  FLEX: ["Everything included in Live", "Unlimited published updates and 5 résumé re-imports every 28 days", "30 fact-checked AI writing improvements every 28 days", "Detailed analytics and version history for 90 days", "Priority email support", "Custom-domain connection — coming soon"],
-  CARE: ["Everything included in Flex", "10 résumé re-imports and 60 fact-checked AI improvements every 28 days", "Detailed analytics and version history for 1 year", "1 human-managed portfolio update every 28 days", "Personal priority help", "Guided custom-domain setup — coming soon"],
+  LIVE: ["One portfolio hosted on your VXL address", "Every template, palette, typeface and visual effect", "2 published updates and 1 résumé re-import every 28 days", "3 fact-checked AI writing improvements every 28 days", "Lifetime visit total and latest published version", "Small “Made with VXL” wordmark at the bottom"],
+  FLEX: ["Everything included in Live", "Unlimited published updates and 5 résumé re-imports every 28 days", "30 fact-checked AI writing improvements every 28 days", "Detailed analytics and version history for 90 days", "No VXL wordmark on your portfolio", "Priority email support", "Custom-domain connection — coming soon"],
+  CARE: ["Everything included in Flex", "10 résumé re-imports and 60 fact-checked AI improvements every 28 days", "Detailed analytics and version history for 1 year", "No VXL wordmark on your portfolio", "1 human-managed portfolio update every 28 days", "Personal priority help", "Guided custom-domain setup — coming soon"],
 };
 
 const safeBenefits = (input: PlanEmailInput) => input.benefits?.length ? input.benefits : planBenefits[input.plan.toUpperCase()] ?? [];

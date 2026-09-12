@@ -17,6 +17,7 @@ export type PortfolioAccess = {
   resume: ResumeSnapshot | null;
   profileId: string;
   isOwner: boolean;
+  showWordmark: boolean;
 };
 
 const activeAfter = (value: unknown) =>
@@ -44,12 +45,17 @@ export async function loadPortfolioAccess(slug: string): Promise<PortfolioAccess
     .maybeSingle();
 
   if (ownerProfile && accountId === ownerProfile.id) {
-    const [experiences, education, items, resume] = await Promise.all([
+    const [experiences, education, items, resume, subscription] = await Promise.all([
       admin.from("experiences").select("*").eq("profile_id", accountId).order("sort_order"),
       admin.from("education").select("*").eq("profile_id", accountId).order("sort_order"),
       admin.from("profile_items").select("*").eq("profile_id", accountId).order("sort_order"),
       admin.from("resumes").select("storage_path,original_name,content_type").eq("profile_id", accountId).eq("is_primary", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      admin.from("subscriptions").select("plan,status,period_ends_at").eq("profile_id", accountId).maybeSingle(),
     ]);
+    const ownerPlan = String(subscription.data?.plan);
+    const ownerHasUnbrandedPlan = ["flex", "care"].includes(ownerPlan)
+      && subscription.data?.status === "active"
+      && activeAfter(subscription.data?.period_ends_at);
     return {
       data: {
         profile: ownerProfile,
@@ -60,6 +66,7 @@ export async function loadPortfolioAccess(slug: string): Promise<PortfolioAccess
       resume: resume.data,
       profileId: String(ownerProfile.id),
       isOwner: true,
+      showWordmark: !ownerHasUnbrandedPlan,
     };
   }
 
@@ -86,5 +93,6 @@ export async function loadPortfolioAccess(slug: string): Promise<PortfolioAccess
     resume: snapshot.resume ?? null,
     profileId: String(published.profile_id),
     isOwner: false,
+    showWordmark: !paid || subscription?.plan === "live",
   };
 }
