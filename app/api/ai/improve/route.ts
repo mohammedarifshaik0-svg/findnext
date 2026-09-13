@@ -6,7 +6,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const maxDuration = 60;
 
 const model = "openai/gpt-5.4-mini";
-const fallbackModels = ["openai/gpt-5-mini"];
+// Keep one same-family fallback for consistent copy, then cross providers so a
+// temporary OpenAI outage does not take AI Writing down with it.
+const fallbackModels = ["openai/gpt-5-mini", "anthropic/claude-haiku-4.5"];
 const fields = new Set(["headline", "summary"]);
 const tones = new Set(["confident", "concise", "approachable"]);
 
@@ -214,7 +216,7 @@ export async function POST(request: Request) {
       prompt: JSON.stringify({ CURRENT_TEXT: source, TARGET_ROLE: targetRole || null, VERIFIED_PROFILE_CONTEXT: context }),
       reasoning: "medium",
       maxOutputTokens: field === "headline" ? 1200 : 2600,
-      maxRetries: 1,
+      maxRetries: 2,
       abortSignal: AbortSignal.timeout(45000),
       providerOptions: {
         gateway: { models: fallbackModels, user: userId, tags: ["feature:ai-writing", `field:${field}`, "version:v2"] } satisfies GatewayProviderOptions,
