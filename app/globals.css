@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+.vxl-cookie-consent{position:fixed;z-index:1000;right:1rem;bottom:1rem;left:1rem;display:flex;align-items:center;justify-content:space-between;gap:1.25rem;max-width:68rem;margin-inline:auto;padding:1rem 1.1rem;border:1px solid rgba(255,255,255,.14);border-radius:1rem;background:rgba(11,11,13,.96);color:#f4f4f5;box-shadow:0 24px 70px rgba(0,0,0,.34);backdrop-filter:blur(18px)}
+.vxl-cookie-consent strong{font-size:.9rem}.vxl-cookie-consent p{max-width:48rem;margin:.3rem 0 0;color:#b8b8bf;font-size:.75rem;line-height:1.55}.vxl-cookie-consent a{display:inline-block;margin-top:.35rem;color:#e4e4e7;font-size:.7rem;text-decoration:underline;text-underline-offset:3px}.vxl-cookie-actions{display:flex;flex:none;gap:.5rem}.vxl-cookie-actions button{min-height:2.5rem;padding:.65rem .9rem;border-radius:.65rem;font-size:.73rem;font-weight:700}.vxl-cookie-reject{border:1px solid rgba(255,255,255,.18);color:#e4e4e7}.vxl-cookie-accept{border:1px solid #f4f4f5;background:#f4f4f5;color:#111113}
+.vxl-footer-groups button{color:inherit;font:inherit;transition:color .18s ease}.vxl-footer-groups button:hover{color:var(--vxl-text)}
+@media(max-width:700px){.vxl-cookie-consent{display:block}.vxl-cookie-actions{margin-top:.85rem}.vxl-cookie-actions button{flex:1}}
+
 .portfolio-surface {
   position: relative;
   isolation: isolate;

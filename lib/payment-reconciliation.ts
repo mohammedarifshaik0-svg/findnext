@@ -22,5 +22,12 @@ export async function reconcilePayment(paymentId: string, accountId?: string) {
   const email = purchaseActivatedEmail(purchase.plan.toUpperCase(),purchase.id);
   const saved = await admin.rpc("vxl_capture_purchase",{purchase_id:purchase.id,payment_id:payment.id,expected_mode:mode,email_subject:email.subject,email_html:email.html,email_text:email.text});
   if (saved.error) throw new Error("payment_activation_failed");
-  return saved.data;
+  return {
+    ...saved.data,
+    transactionId: purchase.id,
+    plan: purchase.plan,
+    billingCycle: purchase.billing_cycle,
+    amountPaise: purchase.amount_paise,
+    currency: purchase.currency,
+  };
 }

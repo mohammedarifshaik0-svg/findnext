@@ -22,6 +22,7 @@ import { AiWriting } from "@/app/ai-writing";
 import { PlanBadge, type WorkspacePlan } from "@/app/plan-badge";
 import { defaultPaletteForTheme, defaultTextFinishForTheme, palettesForTheme, portfolioStyle, textFinishesForTheme } from "@/lib/portfolio-style";
 import { PLAN_LIMITS } from "@/lib/plans";
+import { trackEvent, trackOncePerSession } from "@/lib/analytics";
 
 type Experience = {
   id: string;
@@ -247,6 +248,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
   const contentRef = useRef<HTMLElement>(null);
   const previewRef = useRef<HTMLElement>(null);
   const previewViewportRef = useRef<HTMLDivElement>(null);
+  const savedLinksRef = useRef<Set<string>>(new Set());
   const [uiTheme, setUiTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "light";
     return window.localStorage.getItem("vxl_ui_theme") === "dark" ? "dark" : "light";
@@ -265,6 +267,8 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
         }
         if (result.profile) {
           const profile = mapRow(result.profile);
+          const mappedItems = (result.items ?? []).map(mapRow) as unknown as Item[];
+          savedLinksRef.current = new Set(mappedItems.filter((item) => item.url.trim()).map((item) => `${item.id}:${item.url.trim()}`));
           setData({
             ...defaultState(account),
             ...profile,
@@ -276,7 +280,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
               isCurrent: Boolean(row.is_current),
             })) as unknown as Experience[],
             education: (result.education ?? []).map(mapRow) as unknown as Education[],
-            items: (result.items ?? []).map(mapRow) as unknown as Item[],
+            items: mappedItems,
           });
           setSavedAt(String(profile.updatedAt ?? ""));
         }
@@ -356,6 +360,12 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(String(result.error || "Could not save changes."));
       setSavedAt(String(result.savedAt ?? ""));
+      const nextLinks = new Set(payload.items.filter((item) => item.url.trim()).map((item) => `${item.id}:${item.url.trim()}`));
+      payload.items.forEach((item) => {
+        const key = `${item.id}:${item.url.trim()}`;
+        if (item.url.trim() && !savedLinksRef.current.has(key)) trackEvent("custom_link_added", { feature_name: item.itemType, source: "builder_save" });
+      });
+      savedLinksRef.current = nextLinks;
       setNoticeTone("success");
       setNotice(successMessage);
       return true;
@@ -367,14 +377,16 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
       setSaving(false);
     }
   };
-  const applyParsed = async (parsed: ParsedResume, fileName: string, resumeId: string, status: string) => {
+  const applyParsed = async (parsed: ParsedResume, fileName: string, resumeId: string, status: string, source: "upload" | "reparse") => {
     setResume({ id: resumeId, original_name: fileName, parse_status: status });
     const merged = mergeParsedResume(data, parsed);
     setData(merged);
     setActiveTab("profile");
     const imported = parsed.experiences.length + parsed.education.length + parsed.items.length;
     const warning = parsed.warnings.length ? ` ${parsed.warnings[0]}` : "";
-    await save(merged, `Résumé read and saved. We prefilled your profile and imported ${imported} structured entries. Review every field before publishing.${warning}`);
+    const saved = await save(merged, `Résumé read and saved. We prefilled your profile and imported ${imported} structured entries. Review every field before publishing.${warning}`);
+    if (saved) trackEvent("resume_import_complete", { source });
+    return saved;
   };
   const uploadResume = async (file?: File) => {
     if (!file) return;
@@ -390,7 +402,8 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
       });
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(String(result.error || "Upload failed."));
-      await applyParsed(result.parsedData as ParsedResume, String(result.name), String(result.id), String(result.status));
+      trackEvent("resume_upload", { source: "builder" });
+      await applyParsed(result.parsedData as ParsedResume, String(result.name), String(result.id), String(result.status), "upload");
       if (fileRef.current) fileRef.current.value = "";
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Could not upload and read the résumé.");
@@ -408,7 +421,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
       });
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(String(result.error || "Could not read the saved résumé."));
-      await applyParsed(result.parsedData as ParsedResume, String(result.name), String(result.id), String(result.status));
+      await applyParsed(result.parsedData as ParsedResume, String(result.name), String(result.id), String(result.status), "reparse");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Could not read the saved résumé.");
     } finally {
@@ -458,7 +471,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
       setNotice(`Your portfolio is saved, but before publishing please complete: ${missing.join(", ")}.`);
       return;
     }
-    const paid = subscription?.status === "active" && (!subscription.period_ends_at || new Date(subscription.period_ends_at).getTime() > Date.now());
+    const paid = subscription?.status === "active" && (!subscription.period_ends_at || new Date(subscription.period_ends_at).getTime() > now);
     const publishWindow = paid ? `${subscription.plan.toUpperCase()} plan · live through ${subscription.period_ends_at ? new Date(subscription.period_ends_at).toLocaleDateString() : "your active billing period"}` : data.trialEndsAt ? `Free version · live until ${new Date(data.trialEndsAt).toLocaleDateString()}` : "Free version · your 7-day live period starts now";
     const wordmark = paid && (subscription.plan === "flex" || subscription.plan === "care")
       ? "VXL wordmark: removed on Flex and Care"
@@ -466,6 +479,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
     if (!window.confirm(`Publish this saved version?\n\n${publishWindow}\n${wordmark}\n\nOnly this saved version becomes public. Future draft edits stay private until you publish again.`)) return;
     const saved = await save(data, "Draft saved. Publishing your approved version…");
     if (!saved) return;
+    trackEvent("portfolio_publish_started", { source: "builder", template_name: data.theme, ...(workspacePlan === "free" ? {} : { plan_name: workspacePlan }) });
     setSaving(true);
     try {
       const response = await fetch("/api/profile/publish", { method: "POST" });
@@ -477,6 +491,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
         trialStartedAt: current.trialStartedAt ?? String(result.publishedAt ?? ""),
         trialEndsAt: result.trialEndsAt ? String(result.trialEndsAt) : current.trialEndsAt,
       }));
+      if (!result.unchanged) trackEvent("portfolio_published", { source: "confirmed_publish", template_name: data.theme, ...(workspacePlan === "free" ? {} : { plan_name: workspacePlan }) });
       if (result.unchanged) {
         setNotice("Your live portfolio already matches this draft. No publish allowance was used.");
       } else if (typeof result.limit === "number" && typeof result.remaining === "number") {
@@ -510,6 +525,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
       previewTab.close();
       return;
     }
+    trackEvent("preview_viewed", { source: "builder", template_name: data.theme });
     const url = `/p/${data.portfolioSlug || "preview"}`;
     previewTab.location.replace(url);
   };
@@ -522,6 +538,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
     };
     setData(next);
     const saved = await save(next, `${templates.find((template) => template.id === theme)?.name ?? "Portfolio"} template selected and saved.`);
+    if (saved) trackEvent("template_selected", { template_name: theme, source: "builder" });
     if (saved && window.matchMedia("(max-width: 1180px)").matches) {
       window.setTimeout(() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
     }
@@ -575,6 +592,8 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
     ]);
   const openTab = (tab: string) => {
     setActiveTab(tab);
+    if (["profile", "experience", "education", "extras", "templates"].includes(tab)) trackOncePerSession("builder_started", "builder_started", { source: "workspace" });
+    if (tab === "analytics") trackOncePerSession("analytics_viewed", "analytics_viewed", { source: "workspace" });
     window.requestAnimationFrame(() => window.requestAnimationFrame(() =>
       (document.getElementById(`vxl-section-${tab}`) ?? contentRef.current)?.scrollIntoView({
         behavior: "smooth",

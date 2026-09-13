@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaymentCheckout } from "@/app/payment-checkout";
 import { PLAN_LIMITS, PLAN_PRICES, PLANS, UNIVERSAL_BENEFITS, type BillingCycle, type PaidPlan as Plan } from "@/lib/plans";
+import { trackEvent, trackOncePerSession } from "@/lib/analytics";
 
 type SubscriptionPlan = "trial" | Plan;
 type Subscription = {
@@ -116,7 +117,9 @@ export function PlansPanel({ email }: { email: string }) {
   const load = useCallback(async () => {
     const response = await fetch("/api/billing", { cache: "no-store" });
     const result = await readResponse(response);
-    if (response.ok) setBilling(result);
+    if (!response.ok) return null;
+    setBilling(result);
+    return result as BillingData;
   }, []);
 
   useEffect(() => {
@@ -124,6 +127,7 @@ export function PlansPanel({ email }: { email: string }) {
       const savedReferral = window.localStorage.getItem("vxl_referral") ?? window.localStorage.getItem("findnext_referral");
       if (savedReferral) setReferralInput(savedReferral);
       void load();
+      trackOncePerSession("pricing_workspace", "pricing_viewed", { source: "workspace" });
       void fetch("/api/payments/orders",{cache:"no-store"}).then(response=>response.json()).then(result=>setCheckout({enabled:result.enabled===true,test:result.test===true})).catch(()=>{});
     });
     return () => window.cancelAnimationFrame(frame);
@@ -176,6 +180,7 @@ export function PlansPanel({ email }: { email: string }) {
         message:
           "Your plan details are on their way. Please check your inbox and spam folder.",
       });
+      trackEvent("plan_selected", { plan_name: plan, source: "plan_request" });
       await load();
     } catch (error) {
       setPlanToast({
@@ -208,7 +213,10 @@ export function PlansPanel({ email }: { email: string }) {
       const periodEndsAt = result.redemption.periodEndsAt as string;
       setActivationCode("");
       setUpgrade({ plan, periodEndsAt });
-      await load();
+      const refreshed = await load();
+      if (refreshed?.subscription?.status === "active" && refreshed.subscription.plan === plan) {
+        trackEvent("plan_activated", { plan_name: plan, source: "activation_code" });
+      }
     } catch (error) {
       setPlanToast({
         kind: "error",
@@ -422,7 +430,10 @@ export function PlansPanel({ email }: { email: string }) {
                     </li>
                   ))}
                 </ul>
-                {checkout.enabled ? <PaymentCheckout key={`${plan.id}-${cycle}-${checkoutReferral}`} plan={plan.id} cycle={cycle} email={email} referralCode={checkoutReferral} test={checkout.test} disabled={Boolean(working)} onBusy={busy=>setWorking(busy?plan.id:null)} onActivated={load} /> : <Button
+                {checkout.enabled ? <PaymentCheckout key={`${plan.id}-${cycle}-${checkoutReferral}`} plan={plan.id} cycle={cycle} email={email} referralCode={checkoutReferral} test={checkout.test} disabled={Boolean(working)} onBusy={busy=>setWorking(busy?plan.id:null)} onActivated={async expectedPlan => {
+                  const refreshed = await load();
+                  return refreshed?.subscription?.status === "active" && refreshed.subscription.plan === expectedPlan;
+                }} /> : <Button
                   className="mt-6 w-full"
                   variant={plan.featured && !isCurrent ? "default" : "outline"}
                   disabled={Boolean(working) || isCurrent}

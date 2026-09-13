@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { VxlLogo } from "@/app/vxl-logo";
+import { CookiePreferencesButton } from "@/app/vxl-analytics";
 
 export type LegalSection = { title: string; paragraphs?: string[]; bullets?: string[] };
 
@@ -12,5 +13,5 @@ export function LegalShell({ title, effective = "Effective Date: 13 September 20
 }
 
 export function LegalFooter() {
-  return <footer className="border-t border-black/10 bg-[#0b0b0d] px-5 py-10 text-zinc-400"><div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-[1fr_auto_auto]"><div><VxlLogo/><p className="mt-2 text-xs">We Excel. We Grow Together.</p></div><nav className="grid grid-cols-1 gap-8 text-xs sm:grid-cols-2" aria-label="Footer"><div className="flex flex-col gap-3"><strong className="text-[10px] tracking-[.16em] text-zinc-500">VXL</strong><Link href="/about">About Us</Link><Link href="/#pricing">Pricing</Link><Link href="/contact">Contact Us</Link></div><div className="flex flex-col gap-3"><strong className="text-[10px] tracking-[.16em] text-zinc-500">LEGAL</strong><Link href="/terms">Terms &amp; Conditions</Link><Link href="/privacy">Privacy Policy</Link><Link href="/refund-policy">Refund &amp; Cancellation Policy</Link></div></nav><small className="text-xs md:text-right">© 2026 VXL. All rights reserved.</small></div></footer>;
+  return <footer className="border-t border-black/10 bg-[#0b0b0d] px-5 py-10 text-zinc-400"><div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-[1fr_auto_auto]"><div><VxlLogo/><p className="mt-2 text-xs">We Excel. We Grow Together.</p></div><nav className="grid grid-cols-1 gap-8 text-xs sm:grid-cols-2" aria-label="Footer"><div className="flex flex-col gap-3"><strong className="text-[10px] tracking-[.16em] text-zinc-500">VXL</strong><Link href="/about">About Us</Link><Link href="/#pricing">Pricing</Link><Link href="/contact">Contact Us</Link></div><div className="flex flex-col items-start gap-3"><strong className="text-[10px] tracking-[.16em] text-zinc-500">LEGAL</strong><Link href="/terms">Terms &amp; Conditions</Link><Link href="/privacy">Privacy Policy</Link><Link href="/refund-policy">Refund &amp; Cancellation Policy</Link><CookiePreferencesButton className="text-left hover:text-white"/></div></nav><small className="text-xs md:text-right">© 2026 VXL. All rights reserved.</small></div></footer>;
 }

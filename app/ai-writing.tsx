@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, Loader2, Sparkles, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { trackEvent } from "@/lib/analytics";
 
 type Field = "headline" | "summary";
 type Tone = "confident" | "concise" | "approachable";
@@ -74,6 +75,7 @@ export function AiWriting({ headline, summary, context, onApply }: { headline: s
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Could not generate suggestions.");
       setSuggestion(result);
+      trackEvent("ai_improve_used", { feature_name: field, source: "writing_studio" });
       await refresh().catch(() => setMessage("Suggestions are saved. Reload to refresh your remaining allowance."));
     } catch (error) {
       setMessage(error instanceof DOMException && error.name === "TimeoutError"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { VxlLogo, VxlPortalMark } from "@/app/vxl-logo";
 import { createClient } from "@/lib/supabase/client";
@@ -11,6 +11,8 @@ import {
   LayoutTemplate, Loader2, Moon, Rocket, ShieldCheck, SlidersHorizontal, Sun, Upload, WandSparkles, X,
 } from "lucide-react";
 import { PLAN_PRICES } from "@/lib/plans";
+import { CookiePreferencesButton } from "@/app/vxl-analytics";
+import { planItem, queueAuthEvent, trackEvent, trackRecommendedEvent } from "@/lib/analytics";
 
 function GoogleMark() {
   return <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.92h5.38a4.6 4.6 0 0 1-2 3.02v2.55h3.24c1.9-1.75 2.98-4.33 2.98-7.42Z"/><path fill="#34A853" d="M12 22c2.7 0 4.98-.9 6.64-2.35l-3.25-2.55c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.03v2.63A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.93A6 6 0 0 1 6.08 12c0-.67.11-1.32.31-1.93V7.44H3.03A10 10 0 0 0 2 12c0 1.61.38 3.14 1.03 4.56l3.36-2.63Z"/><path fill="#EA4335" d="M12 5.94c1.47 0 2.79.5 3.83 1.5l2.88-2.88A9.65 9.65 0 0 0 12 2a10 10 0 0 0-8.97 5.44l3.36 2.63C7.18 7.7 9.39 5.94 12 5.94Z"/></svg>;
@@ -57,6 +59,7 @@ export function AuthPanel() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [authOpen, setAuthOpen] = useState(false);
+  const pricingRef = useRef<HTMLElement>(null);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "light";
     return window.localStorage.getItem("vxl_ui_theme") === "dark" ? "dark" : "light";
@@ -65,6 +68,24 @@ export function AuthPanel() {
   useEffect(() => {
     const referral = new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase();
     if (referral) window.localStorage.setItem("vxl_referral", referral);
+  }, []);
+
+  useEffect(() => {
+    const target = pricingRef.current;
+    if (!target) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      trackEvent("pricing_viewed", { source: "landing" });
+      trackRecommendedEvent("view_item_list", {
+        item_list_id: "vxl_public_plans",
+        item_list_name: "VXL plans",
+        currency: "INR",
+        items: plans.map((plan) => planItem(plan.id, "28_days", PLAN_PRICES[plan.id]["28_days"])),
+      });
+      observer.disconnect();
+    }, { threshold: 0.25 });
+    observer.observe(target);
+    return () => observer.disconnect();
   }, []);
 
   const changeTheme = () => {
@@ -87,6 +108,7 @@ export function AuthPanel() {
     setLoading(false);
     if (result.error) return setMessage(result.error.message);
     if (mode === "signup" && !result.data.session) return setMessage("Check your email to confirm your account. The link will bring you back here signed in.");
+    queueAuthEvent(mode === "signup" ? "sign_up" : "login", "email");
     window.location.assign("/");
   };
 
@@ -142,7 +164,7 @@ export function AuthPanel() {
       </div>
     </section>
 
-    <section id="pricing" className="vxl-section vxl-pricing-section">
+    <section ref={pricingRef} id="pricing" className="vxl-section vxl-pricing-section">
       <div className="vxl-section-heading"><span>SIMPLE, TRANSPARENT PLANS</span><h2>Start light. Grow when you need.</h2><p>One-time payment for 28 days of access. No automatic renewal. Your seven-day trial starts only when you publish.</p></div>
       <div className="vxl-pricing-trust"><span><ShieldCheck/>7 free days start on first publish</span><span><Check/>No card required to build</span><span><Check/>Draft stays saved after expiry</span></div>
       <div className="vxl-pricing-grid">{plans.map(plan=><article key={plan.name} className={plan.featured?"featured":""}>{plan.featured&&<div className="vxl-popular">MOST FLEXIBLE</div>}<span>{plan.name}</span><h3>₹{PLAN_PRICES[plan.id]["28_days"]}<small>/28 days</small></h3><p>{plan.note}</p><ul>{plan.features.map(feature=><li key={feature.label} className={feature.comingSoon?"is-coming-soon":""}><Check/>{feature.label}{feature.comingSoon&&<small>COMING SOON</small>}</li>)}</ul><button className={plan.featured?"vxl-chrome-button":"vxl-quiet-button"} onClick={() => openAuth("signup")}>Choose {plan.name}<ArrowRight/></button></article>)}</div>
@@ -152,7 +174,7 @@ export function AuthPanel() {
     </section>
 
     <section className="vxl-final-cta"><span>YOUR NEXT MOVE, VISIBLE</span><h2>Ready to excel?</h2><p>Bring the résumé. VXL will help you turn it into something people remember.</p><button className="vxl-chrome-button large" onClick={() => openAuth("signup")}>Create your portfolio <ArrowRight/></button></section>
-    <footer className="vxl-footer"><div className="vxl-footer-brand"><VxlLogo/><p>We Excel. We Grow Together.</p></div><nav className="vxl-footer-groups" aria-label="Footer"><div><span>VXL</span><Link href="/about">About Us</Link><Link href="/#pricing">Pricing</Link><Link href="/contact">Contact Us</Link></div><div><span>LEGAL</span><Link href="/terms">Terms &amp; Conditions</Link><Link href="/privacy">Privacy Policy</Link><Link href="/refund-policy">Refund &amp; Cancellation Policy</Link></div></nav><small>© 2026 VXL. All rights reserved.</small></footer>
+    <footer className="vxl-footer"><div className="vxl-footer-brand"><VxlLogo/><p>We Excel. We Grow Together.</p></div><nav className="vxl-footer-groups" aria-label="Footer"><div><span>VXL</span><Link href="/about">About Us</Link><Link href="/#pricing">Pricing</Link><Link href="/contact">Contact Us</Link></div><div><span>LEGAL</span><Link href="/terms">Terms &amp; Conditions</Link><Link href="/privacy">Privacy Policy</Link><Link href="/refund-policy">Refund &amp; Cancellation Policy</Link><CookiePreferencesButton/></div></nav><small>© 2026 VXL. All rights reserved.</small></footer>
 
     {authOpen&&<div className="vxl-auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-title" onMouseDown={event=>{if(event.target===event.currentTarget)setAuthOpen(false)}}>
       <section className="vxl-auth-card"><button className="vxl-auth-close" onClick={()=>setAuthOpen(false)} aria-label="Close"><X/></button><VxlLogo/>

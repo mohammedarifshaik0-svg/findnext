@@ -9,8 +9,14 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL(safeNext, url.origin));
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      const destination = new URL(safeNext, url.origin);
+      const createdAt = data.user?.created_at ? new Date(data.user.created_at).getTime() : 0;
+      destination.searchParams.set("vxl_auth_event", createdAt && Date.now() - createdAt < 5 * 60_000 ? "sign_up" : "login");
+      destination.searchParams.set("vxl_auth_method", data.user?.app_metadata.provider === "google" ? "google" : "email");
+      return NextResponse.redirect(destination);
+    }
   }
 
   return NextResponse.redirect(new URL("/auth/error", url.origin));
