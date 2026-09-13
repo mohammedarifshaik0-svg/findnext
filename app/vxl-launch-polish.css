@@ -228,6 +228,74 @@
 .vxl-plan-highlight>aside p svg { flex:none;width:.75rem;height:.75rem;margin-top:.12rem;color:var(--plan-accent) }
 .vxl-plan-highlight>aside strong { color:var(--studio-text) }.vxl-plan-highlight>aside button { width:100%;margin-top:.8rem }
 .vxl-membership-hero { --membership-glow:rgba(161,161,170,.2);--membership-from:#18181b;--membership-to:#27272a;--membership-shadow:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.14);background:radial-gradient(circle at 90% 10%,var(--membership-glow),transparent 36%),linear-gradient(135deg,var(--membership-from),var(--membership-to));box-shadow:0 24px 70px var(--membership-shadow) }
+
+/* The light workspace keeps its navigation rail dark, so its copy needs local
+   contrast tokens instead of inheriting the light canvas text colours. */
+.vxl-workspace.is-light .vxl-sidebar-profile > span {
+  color: #a1a1aa;
+}
+.vxl-workspace.is-light .vxl-sidebar-profile > strong {
+  color: #fafafa;
+}
+.vxl-workspace.is-light .vxl-sidebar-profile p {
+  color: #d4d4d8;
+}
+.vxl-workspace.is-light .vxl-sidebar-profile [data-slot="progress"] {
+  background: rgba(255,255,255,.14);
+}
+
+/* Keep mobile horizontal movement inside deliberate rails, never on the page. */
+@media (max-width: 800px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  body > *,
+  .vxl-site,
+  .vxl-workspace,
+  .vxl-studio-header,
+  .vxl-studio-grid,
+  .vxl-studio-grid > *,
+  .vxl-dashboard,
+  .vxl-dashboard > *,
+  .vxl-editor-section,
+  [data-slot="tabs-content"] {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .vxl-site,
+  .vxl-workspace {
+    width: 100%;
+    overflow-x: clip;
+  }
+
+  .vxl-studio-header {
+    overflow: hidden;
+  }
+
+  .vxl-studio-lockup {
+    min-width: 0;
+  }
+
+  .vxl-studio-sidebar nav,
+  .vxl-editor-rail {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 390px) {
+  .vxl-header-plan .vxl-plan-badge small {
+    display: none;
+  }
+}
 .vxl-membership-hero.is-live { --membership-glow:rgba(74,222,128,.24);--membership-from:#052e2b;--membership-to:#064e3b;--membership-shadow:rgba(6,78,59,.18) }
 .vxl-membership-hero.is-flex { --membership-glow:rgba(167,139,250,.3);--membership-from:#1e1b4b;--membership-to:#4c1d95;--membership-shadow:rgba(76,29,149,.2) }
 .vxl-membership-hero.is-care { --membership-glow:rgba(244,197,109,.27);--membership-from:#291a08;--membership-to:#713f12;--membership-shadow:rgba(113,63,18,.2) }
