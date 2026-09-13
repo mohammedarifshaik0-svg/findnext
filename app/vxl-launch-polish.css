@@ -250,7 +250,8 @@
   body {
     width: 100%;
     max-width: 100%;
-    overflow-x: clip;
+    overflow-x: hidden !important;
+    overscroll-behavior-x: none;
   }
 
   body > *,
@@ -270,20 +271,40 @@
   .vxl-site,
   .vxl-workspace {
     width: 100%;
-    overflow-x: clip;
+    max-width: 100dvw;
+    overflow-x: clip !important;
   }
 
   .vxl-studio-header {
+    width: 100%;
+    max-width: 100dvw;
     overflow: hidden;
   }
 
   .vxl-studio-lockup {
+    flex: 1 1 auto;
     min-width: 0;
+    overflow: hidden;
+  }
+
+  .vxl-studio-actions {
+    flex: none;
+  }
+
+  .vxl-studio-grid,
+  .vxl-studio-grid > section,
+  .vxl-preview-column,
+  .vxl-dashboard,
+  .vxl-editor-section {
+    overflow-x: clip;
   }
 
   .vxl-studio-sidebar nav,
   .vxl-editor-rail {
+    width: 100%;
     max-width: 100%;
+    margin-right: 0;
+    margin-left: 0;
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
@@ -293,6 +314,12 @@
 
 @media (max-width: 390px) {
   .vxl-header-plan .vxl-plan-badge small {
+    display: none;
+  }
+}
+
+@media (max-width: 350px) {
+  .vxl-studio-logo .vxl-wordmark {
     display: none;
   }
 }
