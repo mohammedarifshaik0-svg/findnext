@@ -248,8 +248,10 @@
 @media (max-width: 800px) {
   html,
   body {
+    position: relative;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
     overflow-x: hidden !important;
     overscroll-behavior-x: none;
   }
@@ -270,9 +272,13 @@
 
   .vxl-site,
   .vxl-workspace {
+    position: relative;
+    isolation: isolate;
     width: 100%;
+    min-width: 0;
     max-width: 100dvw;
     overflow-x: clip !important;
+    overscroll-behavior-x: none;
   }
 
   .vxl-studio-header {
@@ -301,6 +307,8 @@
 
   .vxl-studio-sidebar nav,
   .vxl-editor-rail {
+    position: relative;
+    contain: inline-size layout;
     width: 100%;
     max-width: 100%;
     margin-right: 0;
