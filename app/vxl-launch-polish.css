@@ -308,7 +308,7 @@
   .vxl-studio-sidebar nav,
   .vxl-editor-rail {
     position: relative;
-    contain: inline-size layout;
+    contain: inline-size;
     width: 100%;
     max-width: 100%;
     margin-right: 0;
@@ -317,6 +317,13 @@
     overflow-y: hidden;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .vxl-editor-rail {
+    top: auto;
+    z-index: 1;
+    min-height: 3.5rem;
+    margin-bottom: 1.25rem !important;
   }
 }
 
