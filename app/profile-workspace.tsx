@@ -226,7 +226,7 @@ const templates = [
   },
 ] as const;
 
-export function ProfileWorkspace({ account }: { account: { name: string; email: string } }) {
+export function ProfileWorkspace({ account }: { account: { id: string; name: string; email: string } }) {
   const [now] = useState(() => Date.now());
   const [data, setData] = useState<State>(() => defaultState(account));
   const [loading, setLoading] = useState(true);
@@ -253,12 +253,16 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
   });
 
   useEffect(() => {
-    fetch("/api/profile")
+    const controller = new AbortController();
+    fetch("/api/profile", { cache: "no-store", credentials: "same-origin", signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("Could not load your profile.");
         return response.json();
       })
       .then((result) => {
+        if (result.accountId !== account.id) {
+          throw new Error("Your signed-in session changed while this page was loading. For safety, no portfolio data was displayed. Refresh and sign in again if needed.");
+        }
         if (result.profile) {
           const profile = mapRow(result.profile);
           setData({
@@ -288,8 +292,14 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
           }
         }
       })
-      .catch((error) => setNotice(error.message))
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setData(defaultState(account));
+        setNoticeTone("error");
+        setNotice(error instanceof Error ? error.message : "Could not load your profile.");
+      })
       .finally(() => setLoading(false));
+    return () => controller.abort();
   }, [account]);
 
   useEffect(() => {

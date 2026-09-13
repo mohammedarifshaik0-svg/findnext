@@ -241,6 +241,12 @@
   border-radius: .8rem;
   background: linear-gradient(135deg, var(--studio-panel), var(--studio-panel-2));
 }
+.vxl-analytics-range { display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem;border:1px solid var(--studio-line);border-radius:.8rem;background:color-mix(in srgb,var(--studio-panel-2) 42%,transparent) }
+.vxl-analytics-range>div:first-child { display:grid;gap:.2rem }.vxl-analytics-range strong { font-size:.76rem }.vxl-analytics-range small { color:var(--studio-muted);font-size:.62rem }
+.vxl-analytics-range>div:last-child { display:flex;flex-wrap:wrap;gap:.35rem;padding:.25rem;border:1px solid var(--studio-line);border-radius:.65rem;background:var(--studio-panel) }
+.vxl-analytics-range button { padding:.45rem .65rem;border-radius:.45rem;color:var(--studio-muted);font-size:.6rem;font-weight:750 }
+.vxl-analytics-range button.active { color:var(--studio-text);background:var(--studio-panel-2);box-shadow:0 5px 14px rgba(0,0,0,.1) }
+.vxl-info-header .vxl-portal-outer { border-color:#56565c }.vxl-info-header .vxl-portal-inner { color:#111;border-color:#111 }.vxl-info-header .vxl-portal-infinity,.vxl-info-header .vxl-wordmark { color:#111 }
 .vxl-analytics-intro > div, .vxl-history-card { display: flex; align-items: center; gap: .75rem; }
 .vxl-analytics-intro svg, .vxl-history-card svg { width: 1rem; color: var(--studio-muted); }
 .vxl-analytics-intro span, .vxl-history-card span { display: grid; gap: .2rem; }
@@ -269,6 +275,7 @@
   .vxl-action-toast { right: 1rem; bottom: 1rem; }
   .vxl-analytics-intro { align-items: stretch; flex-direction: column; }
   .vxl-analytics-intro button { width: 100%; }
+  .vxl-analytics-range { align-items:stretch;flex-direction:column }.vxl-analytics-range>div:last-child { display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) }
   .vxl-header-plan { margin-left:0;padding-left:.6rem }.vxl-header-plan .vxl-plan-badge small { display:none }
   .vxl-sidebar-plan { display:none }
   .vxl-plan-highlight { grid-template-columns:1fr;gap:1rem;padding:1.15rem }.vxl-plan-highlight>aside { min-width:0 }

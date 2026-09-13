@@ -1,0 +1,8 @@
+import type { Metadata } from "next";
+import { LegalFooter, PublicInfoHeader } from "@/app/legal-shell";
+
+export const metadata: Metadata = { title: "About VXL | VXL", description: "Learn how VXL helps people build and publish a professional portfolio online.", alternates: { canonical: "/about" } };
+
+export default function AboutPage() {
+  return <main className="min-h-screen bg-[#f5f5f7] text-[#111113]"><PublicInfoHeader/><article className="mx-auto max-w-4xl px-5 py-16 md:py-24"><p className="text-[11px] font-bold tracking-[.18em] text-zinc-500">ABOUT VXL</p><h1 className="mt-5 max-w-3xl text-5xl font-bold leading-[.95] tracking-[-.065em] md:text-7xl">Build once.<br/>Present everywhere.</h1><div className="mt-12 grid gap-8 border-t border-black/10 pt-10 text-[15px] leading-8 text-zinc-600 md:grid-cols-2"><div className="space-y-5"><p>VXL is a web-based professional identity and portfolio platform designed to help individuals create, manage and publish their professional presence online.</p><p>Users can organise professional information such as experience, education, skills and projects and turn it into a polished portfolio that can be shared with employers, clients and professional networks.</p></div><div className="space-y-5"><p>VXL provides digital services only. No physical products are sold or shipped.</p><p>Our goal is simple: make it easier to build your professional story once and present it wherever opportunity finds you.</p><div className="rounded-2xl border border-black/10 bg-white p-6"><strong className="text-black">VXL</strong><p className="mt-2 text-sm">We Excel. We Grow Together.</p></div></div></div></article><LegalFooter/></main>;
+}

@@ -6,6 +6,15 @@ type Education = { id?: string; institution?: string; qualification?: string; fi
 type Item = { id?: string; itemType?: string; title?: string; subtitle?: string; description?: string; url?: string; level?: string; issuedAt?: string };
 type Payload = { fullName?: string; headline?: string; professionalSummary?: string; email?: string; phone?: string; city?: string; country?: string; pronouns?: string; portfolioSlug?: string; theme?: string; accent?: string; textTone?: string; effectIntensity?: number; isPublic?: boolean; consentProfileStorage?: boolean; consentTalentDiscovery?: boolean; experiences?: Experience[]; education?: Education[]; items?: Item[] };
 const clean = (value: unknown, max = 4000) => typeof value === "string" ? value.trim().slice(0, max) : "";
+const privateJson = (body: unknown, init?: ResponseInit) => Response.json(body, {
+  ...init,
+  headers: {
+    "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+    "Pragma": "no-cache",
+    "Vary": "Cookie",
+    ...init?.headers,
+  },
+});
 
 async function authorized() {
   const supabase = await createClient(); const { data, error } = await supabase.auth.getClaims();
@@ -14,10 +23,10 @@ async function authorized() {
 }
 
 export async function GET() {
-  const { supabase, userId } = await authorized(); if (!userId) return Response.json({ error: "Sign in to continue." }, { status: 401 });
+  const { supabase, userId } = await authorized(); if (!userId) return privateJson({ error: "Sign in to continue." }, { status: 401 });
   const { data: profile, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-  if (error) return Response.json({ error: "Could not load your portfolio right now." }, { status: 503 });
-  if (!profile) return Response.json({ profile: null, experiences: [], education: [], items: [], resumes: [] });
+  if (error) return privateJson({ error: "Could not load your portfolio right now." }, { status: 503 });
+  if (!profile) return privateJson({ accountId: userId, profile: null, experiences: [], education: [], items: [], resumes: [] });
   const [experiences, education, items, resumes, subscription, extraction] = await Promise.all([
     supabase.from("experiences").select("*").eq("profile_id", userId).order("sort_order"),
     supabase.from("education").select("*").eq("profile_id", userId).order("sort_order"),
@@ -27,7 +36,7 @@ export async function GET() {
     supabase.from("resume_extractions").select("resume_id,status,extracted_json,parse_error,created_at").eq("profile_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const failed = [experiences.error, education.error, items.error, resumes.error, subscription.error, extraction.error].find(Boolean);
-  if (failed) return Response.json({ error: failed.message }, { status: 500 });
+  if (failed) return privateJson({ error: "Could not load every portfolio section right now." }, { status: 503 });
   let publishedUpdates: number | null = null;
   if (subscription.data?.status === "active" && subscription.data.period_starts_at && subscription.data.period_ends_at) {
     const start = new Date(subscription.data.period_starts_at).getTime();
@@ -38,7 +47,7 @@ export async function GET() {
     const { data: events } = await supabase.from("subscription_usage_events").select("units").eq("profile_id", userId).eq("entitlement", "published_updates").gte("occurred_at", cycleStart.toISOString()).lt("occurred_at", cycleEnd.toISOString());
     publishedUpdates = (events ?? []).reduce((total, event) => total + (Number(event.units) || 0), 0);
   }
-  return Response.json({ profile, experiences: experiences.data, education: education.data, items: items.data, resumes: resumes.data, subscription: subscription.data, publishedUpdates, resumeExtraction: extraction.data });
+  return privateJson({ accountId: userId, profile, experiences: experiences.data, education: education.data, items: items.data, resumes: resumes.data, subscription: subscription.data, publishedUpdates, resumeExtraction: extraction.data });
 }
 
 export async function PUT(request: Request) {

@@ -9,6 +9,8 @@ type Analytics = {
   totalViews: number;
   detailed: boolean;
   historyDays: number | null;
+  rangeDays: number | null;
+  availableRanges: number[];
   uniqueVisitors: number | null;
   days: { date: string; views: number }[];
   sources: { source: string; views: number }[];
@@ -20,25 +22,27 @@ const previewBars = [18, 34, 26, 52, 43, 68, 48, 76, 58, 84, 66, 91, 72, 88];
 export function AnalyticsPanel({ onUpgrade }: { onUpgrade: () => void }) {
   const [data, setData] = useState<Analytics | null>(null);
   const [error, setError] = useState("");
+  const [range, setRange] = useState(14);
   const [today] = useState(() => Date.now());
 
   useEffect(() => {
-    fetch("/api/analytics")
+    const controller = new AbortController();
+    fetch(`/api/analytics?days=${range}`, { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
         const result = await response.json();
         if (!response.ok) throw new Error(result.error);
         setData(result);
       })
-      .catch((reason) => setError(reason.message));
-  }, []);
+      .catch((reason) => {
+        if (reason instanceof DOMException && reason.name === "AbortError") return;
+        setError(reason.message);
+      });
+    return () => controller.abort();
+  }, [range]);
 
   const series = useMemo(() => {
-    const map = new Map(data?.days.map((day) => [day.date, day.views]));
-    return Array.from({ length: 14 }, (_, index) => {
-      const date = new Date(today - (13 - index) * 86400000).toISOString().slice(0, 10);
-      return { date, views: map.get(date) ?? 0 };
-    });
-  }, [data, today]);
+    return buildSeries(data?.days ?? [], data?.rangeDays ?? range, today);
+  }, [data, range, today]);
   const max = Math.max(1, ...series.map((day) => day.views));
 
   if (error) return <Panel><p className="vxl-inline-notice is-error">{error}</p></Panel>;
@@ -54,6 +58,14 @@ export function AnalyticsPanel({ onUpgrade }: { onUpgrade: () => void }) {
           <Button onClick={onUpgrade}>Unlock with Flex</Button>
         </div>
       )}
+      {!detailedLocked && (
+        <div className="vxl-analytics-range">
+          <div><strong>Reporting window</strong><small>Sources, devices and visitor totals follow this range.</small></div>
+          <div role="group" aria-label="Analytics reporting window">
+            {data.availableRanges.map((days) => <button key={days} className={range === days ? "active" : ""} onClick={() => { setError(""); setRange(days); }} aria-pressed={range === days}>{days === 365 ? "1 year" : `${days} days`}</button>)}
+          </div>
+        </div>
+      )}
       <div className="vxl-metric-grid">
         <Metric icon={BarChart3} label="Lifetime portfolio views" value={data.totalViews} />
         <Metric icon={Users} label="Unique daily visitors" value={data.uniqueVisitors ?? "—"} locked={detailedLocked} />
@@ -61,7 +73,7 @@ export function AnalyticsPanel({ onUpgrade }: { onUpgrade: () => void }) {
       </div>
       <LockedFeature locked={detailedLocked} tier="Flex" title="Visitor trends" description="See when your portfolio gets attention across the last 14 days." onUpgrade={onUpgrade}>
         <div className="vxl-chart-card">
-          <div><strong>Last 14 days</strong><span>{data.historyDays ? `${data.historyDays}-day history` : "Daily privacy-safe views"}</span></div>
+          <div><strong>{data.rangeDays === 365 ? "Last 12 months" : `Last ${data.rangeDays ?? 14} days`}</strong><span>{data.rangeDays && data.rangeDays > 30 ? "Grouped for a clearer view" : "Daily privacy-safe views"}</span></div>
           <div className="vxl-bars">
             {(detailedLocked ? previewBars.map((views, index) => ({ date: `Preview ${index + 1}`, views })) : series).map((day) => (
               <span key={day.date} title={detailedLocked ? undefined : `${day.date}: ${day.views} views`} style={{ height: `${detailedLocked ? day.views : Math.max(4, day.views / max * 100)}%` }} />
@@ -82,6 +94,38 @@ export function AnalyticsPanel({ onUpgrade }: { onUpgrade: () => void }) {
       </LockedFeature>
     </Panel>
   );
+}
+
+function buildSeries(days: Analytics["days"], range: number, today: number) {
+  const dayMap = new Map(days.map((day) => [day.date, day.views]));
+  if (range <= 30) {
+    return Array.from({ length: range }, (_, index) => {
+      const date = new Date(today - (range - 1 - index) * 86400000).toISOString().slice(0, 10);
+      return { date, views: dayMap.get(date) ?? 0 };
+    });
+  }
+  if (range <= 90) {
+    return Array.from({ length: 13 }, (_, index) => {
+      const endOffset = (12 - index) * 7;
+      let views = 0;
+      for (let offset = endOffset; offset < endOffset + 7; offset += 1) {
+        const date = new Date(today - offset * 86400000).toISOString().slice(0, 10);
+        views += dayMap.get(date) ?? 0;
+      }
+      return { date: `Week ${index + 1}`, views };
+    });
+  }
+  const current = new Date(today);
+  const monthMap = new Map<string, number>();
+  for (const day of days) {
+    const month = day.date.slice(0, 7);
+    monthMap.set(month, (monthMap.get(month) ?? 0) + day.views);
+  }
+  return Array.from({ length: 12 }, (_, index) => {
+    const date = new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() - (11 - index), 1));
+    const key = date.toISOString().slice(0, 7);
+    return { date: key, views: monthMap.get(key) ?? 0 };
+  });
 }
 
 function Panel({ children }: { children: React.ReactNode }) {

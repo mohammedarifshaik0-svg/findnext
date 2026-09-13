@@ -2,17 +2,28 @@ import { createHash } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export async function GET() {
+const ANALYTICS_RANGES = [14, 30, 90, 365] as const;
+
+export async function GET(request: Request) {
   const supabase=await createClient(); const {data}=await supabase.auth.getClaims();
   const userId=typeof data?.claims?.sub==="string"?data.claims.sub:null;
   if(!userId) return Response.json({error:"Sign in to view analytics."},{status:401});
   const admin=createAdminClient(); const {data:subscription}=await admin.from("subscriptions").select("plan,status,period_ends_at").eq("profile_id",userId).maybeSingle(); const active=subscription?.status==="active"&&new Date(subscription.period_ends_at??0).getTime()>Date.now(); const detailed=active&&(subscription.plan==="flex"||subscription.plan==="care"); const historyDays=subscription?.plan==="care"?365:90;
-  let query=admin.from("portfolio_views").select("viewed_at,visitor_hash,referrer_domain,device_class").eq("profile_id",userId).order("viewed_at"); if(detailed)query=query.gte("viewed_at",new Date(Date.now()-historyDays*86400000).toISOString());
-  const {data:rows,error}=await query;
-  if(error) return Response.json({error:"Analytics are temporarily unavailable."},{status:503});
+  const availableRanges = detailed ? ANALYTICS_RANGES.filter((days) => days <= historyDays) : [];
+  const requestedDays = Number(new URL(request.url).searchParams.get("days"));
+  const rangeDays = availableRanges.includes(requestedDays as typeof ANALYTICS_RANGES[number]) ? requestedDays : 14;
+  const detailQuery = detailed
+    ? admin.from("portfolio_views").select("viewed_at,visitor_hash,referrer_domain,device_class").eq("profile_id",userId).gte("viewed_at",new Date(Date.now()-rangeDays*86400000).toISOString()).order("viewed_at")
+    : Promise.resolve({ data: [], error: null });
+  const [totalResult, detailResult] = await Promise.all([
+    admin.from("portfolio_views").select("id", { count: "exact", head: true }).eq("profile_id", userId),
+    detailQuery,
+  ]);
+  if(totalResult.error || detailResult.error) return Response.json({error:"Analytics are temporarily unavailable."},{status:503});
+  const rows=detailResult.data;
   const days=new Map<string,number>(); const visitors=new Set<string>(); const sources=new Map<string,number>(); const devices=new Map<string,number>();
   for(const row of rows??[]){const day=String(row.viewed_at).slice(0,10);days.set(day,(days.get(day)??0)+1);visitors.add(String(row.visitor_hash));const source=row.referrer_domain||"Direct";sources.set(source,(sources.get(source)??0)+1);devices.set(row.device_class,(devices.get(row.device_class)??0)+1);}
-  return Response.json({plan:active?subscription?.plan??"free":"free",totalViews:rows?.length??0,detailed,historyDays:detailed?historyDays:null,uniqueVisitors:detailed?visitors.size:null,days:detailed?[...days].map(([date,views])=>({date,views})):[],sources:detailed?[...sources].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([source,views])=>({source,views})):[],devices:detailed?[...devices].map(([device,views])=>({device,views})):[]});
+  return Response.json({plan:active?subscription?.plan??"free":"free",totalViews:totalResult.count??0,detailed,historyDays:detailed?historyDays:null,rangeDays:detailed?rangeDays:null,availableRanges,uniqueVisitors:detailed?visitors.size:null,days:detailed?[...days].map(([date,views])=>({date,views})):[],sources:detailed?[...sources].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([source,views])=>({source,views})):[],devices:detailed?[...devices].map(([device,views])=>({device,views})):[]});
 }
 
 export async function POST(request:Request){
