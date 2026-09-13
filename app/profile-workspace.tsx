@@ -19,6 +19,7 @@ import { SettingsPanel } from "@/app/settings-panel";
 import { DashboardPanel } from "@/app/dashboard-panel";
 import { VxlLogo } from "@/app/vxl-logo";
 import { AiWriting } from "@/app/ai-writing";
+import { PlanBadge, type WorkspacePlan } from "@/app/plan-badge";
 import { defaultPaletteForTheme, defaultTextFinishForTheme, palettesForTheme, portfolioStyle, textFinishesForTheme } from "@/lib/portfolio-style";
 import { PLAN_LIMITS } from "@/lib/plans";
 
@@ -226,6 +227,7 @@ const templates = [
 ] as const;
 
 export function ProfileWorkspace({ account }: { account: { name: string; email: string } }) {
+  const [now] = useState(() => Date.now());
   const [data, setData] = useState<State>(() => defaultState(account));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -327,6 +329,8 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
     [data],
   );
   const completion = Math.round((completionChecks.filter((item) => item.done).length / completionChecks.length) * 100);
+  const hasActiveSubscription = Boolean(subscription?.status === "active" && (!subscription.period_ends_at || new Date(subscription.period_ends_at).getTime() > now));
+  const workspacePlan: WorkspacePlan = hasActiveSubscription && subscription ? subscription.plan : "free";
   const update = <K extends keyof State>(key: K, value: State[K]) => setData((current) => ({ ...current, [key]: value }));
   const save = async (payloadOrEvent: State | ReactMouseEvent<HTMLButtonElement> = data, successMessage = "Everything is saved.") => {
     const payload = "fullName" in payloadOrEvent ? payloadOrEvent : data;
@@ -643,6 +647,9 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
         <div className="vxl-studio-lockup">
           <VxlLogo className="vxl-studio-logo" />
           <p className="vxl-studio-caption">Portfolio studio</p>
+          <button className="vxl-header-plan" type="button" onClick={() => openTab("plans")} aria-label={`Open ${workspacePlan} plan details`}>
+            <PlanBadge plan={workspacePlan} compact />
+          </button>
         </div>
         <div className="vxl-studio-actions">
           <span className="hidden text-xs md:inline">{savedAt ? `Saved at ${new Date(savedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Draft not saved yet"}</span>
@@ -675,6 +682,12 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
             <Progress value={completion} />
             <p>{completion === 100 ? "Ready to publish." : "Complete the highlighted details to publish."}</p>
           </div>
+          <button className={`vxl-sidebar-plan is-${workspacePlan}`} type="button" onClick={() => openTab("plans")}>
+            <PlanBadge plan={workspacePlan} compact />
+            <strong>{workspacePlan === "free" ? "Ready when you are" : workspacePlan === "live" ? "Portfolio essentials" : workspacePlan === "flex" ? "Career in motion" : "Human help included"}</strong>
+            <span>{workspacePlan === "free" ? "Compare access before publishing" : subscription?.period_ends_at ? `Active until ${new Date(subscription.period_ends_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : "Plan benefits unlocked"}</span>
+            <small>{workspacePlan === "free" ? "Explore plans" : "View benefits"}<ChevronRight /></small>
+          </button>
           <nav>
             {[
               { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -764,7 +777,7 @@ export function ProfileWorkspace({ account }: { account: { name: string; email: 
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
             <TabsContent id="vxl-section-dashboard" value="dashboard">
-              <DashboardPanel name={data.fullName || account.name} headline={data.headline} isPublic={data.isPublic} completion={completion} slug={data.portfolioSlug} plan={subscription?.status === "active" ? subscription.plan : "free"} onOpen={openTab} onCopy={copyPortfolioLink} onShare={sharePortfolio} />
+              <DashboardPanel name={data.fullName || account.name} headline={data.headline} isPublic={data.isPublic} completion={completion} slug={data.portfolioSlug} plan={workspacePlan} planUntil={hasActiveSubscription ? subscription?.period_ends_at ?? null : null} onOpen={openTab} onCopy={copyPortfolioLink} onShare={sharePortfolio} />
             </TabsContent>
             <TabsContent id="vxl-section-profile" value="profile">
               <Section title="Personal profile" description="The essentials recruiters see first.">

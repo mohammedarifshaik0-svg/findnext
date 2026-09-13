@@ -1,18 +1,49 @@
 "use client";
 import { useState } from "react";
-import { BarChart3, CheckCircle2, Clock3, Copy, ExternalLink, Eye, FileText, LayoutTemplate, PenLine, Share2 } from "lucide-react";
+import { BarChart3, CheckCircle2, Clock3, Copy, ExternalLink, Eye, FileText, LayoutTemplate, PenLine, Share2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-export function DashboardPanel({ name, headline, isPublic, completion, slug, plan, onOpen, onCopy, onShare }: { name: string; headline: string; isPublic: boolean; completion: number; slug: string; plan: "free" | "live" | "flex" | "care"; onOpen: (tab: string) => void; onCopy: () => void; onShare: () => void }) {
+import { PlanBadge, type WorkspacePlan } from "@/app/plan-badge";
+
+const planHighlights: Record<WorkspacePlan, { eyebrow: string; title: string; description: string; features: string[] }> = {
+  free: {
+    eyebrow: "YOUR CURRENT VERSION",
+    title: "Build freely. Start seven live days when you publish.",
+    description: "Your draft stays private and saved. Upgrade only when you are ready to keep the finished portfolio online.",
+    features: ["Every template", "Private draft editing", "7 live days"],
+  },
+  live: {
+    eyebrow: "YOUR CURRENT PLAN",
+    title: "The essentials for one polished portfolio.",
+    description: "Keep your site live and use focused monthly allowances when your story needs an update.",
+    features: ["2 published updates", "3 AI improvements", "All templates"],
+  },
+  flex: {
+    eyebrow: "YOUR CURRENT PLAN",
+    title: "Built for a career that keeps moving.",
+    description: "Publish whenever you need, explore deeper insights and present a clean, brand-free portfolio.",
+    features: ["Unlimited publishing", "90-day analytics", "No VXL wordmark"],
+  },
+  care: {
+    eyebrow: "YOUR CURRENT PLAN",
+    title: "Premium tools, with a real person beside you.",
+    description: "Get the fullest VXL experience, longer insight history and one human-managed update every cycle.",
+    features: ["1 managed update", "365-day analytics", "Priority human help"],
+  },
+};
+
+export function DashboardPanel({ name, headline, isPublic, completion, slug, plan, planUntil, onOpen, onCopy, onShare }: { name: string; headline: string; isPublic: boolean; completion: number; slug: string; plan: WorkspacePlan; planUntil: string | null; onOpen: (tab: string) => void; onCopy: () => void; onShare: () => void }) {
   const [greeting] = useGreeting();
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "VX";
+  const planCopy = planHighlights[plan];
   return (
     <section className="vxl-dashboard">
       <header>
         <div>
           <span>VXL WORKSPACE</span>
-          <h1>
-            {greeting}, {name.split(" ")[0] || "there"}
-          </h1>
+          <div className="vxl-dashboard-title">
+            <h1>{greeting}, {name.split(" ")[0] || "there"}</h1>
+            <PlanBadge plan={plan} compact />
+          </div>
           <p>Your portfolio, progress, and next action in one calm workspace.</p>
         </div>
         <Button className="vxl-studio-primary" onClick={() => onOpen("profile")}>
@@ -26,6 +57,21 @@ export function DashboardPanel({ name, headline, isPublic, completion, slug, pla
         <Stat icon={Clock3} label="Status" value={isPublic ? "Live" : "Draft"} detail={isPublic ? "Visible to visitors" : "Visible only to you"} />
         <Stat icon={BarChart3} label="Insights" value="Ready" detail="Privacy-safe analytics" />
       </div>
+      <section className={`vxl-plan-highlight is-${plan}`} aria-label={`${plan} plan overview`}>
+        <div>
+          <PlanBadge plan={plan} />
+          <span>{planCopy.eyebrow}</span>
+          <h2>{planCopy.title}</h2>
+          <p>{planCopy.description}</p>
+          <div className="vxl-plan-highlight-features">
+            {planCopy.features.map((feature) => <small key={feature}><CheckCircle2 />{feature}</small>)}
+          </div>
+        </div>
+        <aside>
+          {planUntil && plan !== "free" ? <p><Clock3 />Active through <strong>{new Date(planUntil).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</strong></p> : <p><Sparkles />Your work stays saved even if access changes.</p>}
+          <Button variant="outline" onClick={() => onOpen("plans")}>{plan === "care" ? "View Care benefits" : plan === "free" ? "Compare plans" : "Manage plan"}</Button>
+        </aside>
+      </section>
       <div className="vxl-launch-guide">
         <span>YOUR LAUNCH PATH</span>
         <button onClick={() => onOpen("profile")}>

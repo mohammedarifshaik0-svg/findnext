@@ -267,13 +267,14 @@ export function PlansPanel({ email }: { email: string }) {
     ? [
         { key: "published_updates" as const, label: "Published updates" },
         { key: "resume_reimports" as const, label: "Résumé re-imports" },
+        { key: "ai_improvements" as const, label: "AI improvements" },
       ]
     : [];
 
   return (
     <div className="space-y-5">
       {activeSubscription && (
-        <section className="overflow-hidden rounded-2xl border border-emerald-200 bg-[radial-gradient(circle_at_90%_10%,rgba(52,211,153,.22),transparent_35%),linear-gradient(135deg,#052e2b,#064e3b)] p-5 text-white shadow-lg shadow-emerald-950/10 sm:p-7">
+        <section className={`vxl-membership-hero is-${activeSubscription.plan} overflow-hidden rounded-2xl p-5 text-white sm:p-7`}>
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
             <div className="flex items-start gap-3">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10 ring-1 ring-white/15">
@@ -291,8 +292,8 @@ export function PlansPanel({ email }: { email: string }) {
                 <h2 className="mt-2 text-2xl font-semibold tracking-[-.03em]">
                   Your {planNames[activeSubscription.plan]} plan is live.
                 </h2>
-                <p className="mt-1 text-sm leading-6 text-emerald-100/80">
-                  Your portfolio is covered and your plan benefits are unlocked.
+                <p className="mt-1 text-sm leading-6 text-white/70">
+                  {activeSubscription.plan === "live" ? "Your polished portfolio is covered with focused monthly allowances." : activeSubscription.plan === "flex" ? "Unlimited publishing, deeper analytics and a brand-free portfolio are unlocked." : activeSubscription.plan === "care" ? "Premium tools, extended history and personal human support are unlocked." : "Your portfolio access is active."}
                 </p>
               </div>
             </div>
@@ -316,17 +317,17 @@ export function PlansPanel({ email }: { email: string }) {
                   <div key={key} className="rounded-xl border border-white/10 bg-black/15 p-4">
                     <div className="flex items-center justify-between gap-3 text-sm">
                       <span className="font-semibold text-white">{label}</span>
-                      <span className="text-emerald-200">{limit === null ? "Unlimited" : `${used}/${limit}`}</span>
+                      <span className="text-white/80">{limit === null ? "Unlimited" : `${used}/${limit}`}</span>
                     </div>
-                    <p className="mt-1 text-xs text-emerald-100/70">
-                      {remaining === null ? "No usage limit" : `${remaining} remaining this cycle`}
+                    <p className="mt-1 text-xs text-white/60">
+                      {remaining === null ? "No usage limit" : remaining === 0 ? "Allowance used · resets next cycle" : `${remaining} remaining this cycle`}
                     </p>
                     {limit !== null && <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-emerald-300" style={{ width: `${Math.min(100, (used / limit) * 100)}%` }} /></div>}
                   </div>
                 );
               })}
-              <p className="text-xs text-emerald-100/70 md:col-span-3">
-                Allowances reset {billing.usage?.cycleEndsAt ? formatDate(billing.usage.cycleEndsAt) : "every 28 days"}. Failed imports never use an allowance.
+              <p className="text-xs text-white/60 md:col-span-3">
+                Allowances reset {billing.usage?.cycleEndsAt ? formatDate(billing.usage.cycleEndsAt) : "every 28 days"}. Failed imports and failed AI generations never use an allowance.
               </p>
             </div>
           )}
