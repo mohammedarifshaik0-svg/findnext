@@ -39,6 +39,8 @@ careerkit.example
 
 SKILLS
 Power BI | Business analytics | Excel | Salesforce
+LinkedIn https://www.linkedin.com/in/alex-morgan/
+Portfolio www.alexmorgan.example
 `;
 
 const parsed = parseResumeText(text);
@@ -57,6 +59,8 @@ assert.equal(parsed.education[0].institution, "Newcastle University");
 assert.equal(parsed.items.filter((item) => item.itemType === "achievement").length, 2);
 assert.equal(parsed.items.filter((item) => item.itemType === "project").length, 2);
 assert.equal(parsed.items.filter((item) => item.itemType === "skill").length, 4);
+assert.equal(parsed.items.filter((item) => item.itemType === "skill" && /LinkedIn|Portfolio/.test(item.title)).length, 0);
+assert.equal(parsed.items.filter((item) => item.itemType === "link").length, 2);
 
 console.log("resume parser fixture passed", {
   experiences: parsed.experiences.length,

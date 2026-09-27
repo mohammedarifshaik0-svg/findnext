@@ -135,7 +135,9 @@ function normalizeOptions(output: WritingOutput, field: Field, source: string, c
     ids.add(option.id);
     const comparable = option.text.toLocaleLowerCase();
     if (option.text.length < 10 || option.text.length > max || comparable === source.toLocaleLowerCase() || textSeen.has(comparable)) throw new Error("unusable_output_text");
-    if (writingSimilarity(option.text, source) > (field === "headline" ? 0.88 : 0.9)) throw new Error("unusable_output_too_similar");
+    // Short headlines necessarily repeat the same grounded role and specialty.
+    // Reject near-copies, but do not apply summary-level overlap sensitivity.
+    if (writingSimilarity(option.text, source) > (field === "headline" ? 0.95 : 0.9)) throw new Error("unusable_output_too_similar");
     if (field === "summary" && !hasProfessionalSummaryShape(option.text)) throw new Error("unusable_output_summary_shape");
     if (hasGenericCliche(option.text)) throw new Error("unusable_output_cliche");
     textSeen.add(comparable);
@@ -144,7 +146,7 @@ function normalizeOptions(output: WritingOutput, field: Field, source: string, c
   if (ids.size !== 3) throw new Error("unusable_output_missing_option");
   for (let first = 0; first < options.length; first += 1) {
     for (let second = first + 1; second < options.length; second += 1) {
-      if (writingSimilarity(options[first].text, options[second].text) > 0.82) throw new Error("unusable_output_options_too_similar");
+      if (writingSimilarity(options[first].text, options[second].text) > (field === "headline" ? 0.94 : 0.82)) throw new Error("unusable_output_options_too_similar");
     }
   }
   return options.sort((a, b) => ["recommended", "concise", "human"].indexOf(a.id) - ["recommended", "concise", "human"].indexOf(b.id));
@@ -255,7 +257,7 @@ export async function POST(request: Request) {
     if (recovery.data?.status === "complete") return Response.json({ ...recovery.data, options: validSavedOptions(recovery.data.token_usage?.options) });
     const failure = generationFailure(error);
     const marked = await admin.rpc("vxl_ai_fail", { account_id: userId, request_id: id, input_failure_category: failure.category });
-    console.error("[vxl-ai] generation_failed", { requestId: id, field, latencyMs: Date.now() - startedAt, ...failure });
+    console.error("[vxl-ai] generation_failed", { requestId: id, field, latencyMs: Date.now() - startedAt, ...failure, guard: error instanceof Error ? error.message : "unknown" });
     if (failure.category === "gateway_authentication") return Response.json({ error: "AI Writing is temporarily unavailable because its secure connection is not configured. No improvement was charged." }, { status: 503 });
     if (failure.category === "gateway_credit") return Response.json({ error: "The AI allowance is temporarily exhausted. No improvement was charged." }, { status: 503 });
     if (failure.category === "rate_limit") return Response.json({ error: "AI Writing is receiving too many requests right now. No improvement was charged; please wait a minute and retry." }, { status: 429 });

@@ -1,5 +1,17 @@
 export type ShowcaseLinkKind = "live" | "github" | "figma" | "drive" | "document" | "credential" | "other";
 
+export function normalizeHttpsUrl(value: unknown, max = 1000) {
+  const raw = typeof value === "string" ? value.trim().slice(0, max) : "";
+  if (!raw) return "";
+  const candidate = /^[a-z][a-z\d+.-]*:/i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const parsed = new URL(candidate);
+    return parsed.protocol === "https:" && parsed.hostname ? parsed.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
 export type ShowcaseLink = {
   id: string;
   label: string;

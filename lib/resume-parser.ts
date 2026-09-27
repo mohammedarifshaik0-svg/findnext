@@ -235,6 +235,9 @@ function parseEducation(lines: string[]): ParsedEducation[] {
 
 function listItems(lines: string[], itemType: ParsedItem["itemType"], limit = 30) {
   return lines
+    // Resume contact links sometimes sit directly beneath the skills list.
+    // They are collected as link items separately and must not become skills.
+    .filter((line) => itemType !== "skill" || !URL.test(line))
     .flatMap((line) => itemType === "skill" ? line.split(/[,|;·]/) : [line])
     .map((line) => tidy(line).replace(/^•\s*/, ""))
     .filter((line) => line.length > 1 && line.length < 180)
