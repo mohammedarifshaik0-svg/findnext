@@ -7,6 +7,10 @@ const limits = {
   plan_request: [6, 3600],
   resume_import: [12, 3600],
   code_redemption: [10, 900],
+  showcase_upload: [30, 3600],
+  version_restore: [10, 3600],
+  custom_domain_change: [20, 3600],
+  care_support_request: [6, 86400],
 } as const;
 
 export async function checkRateLimit(accountId: string, action: keyof typeof limits): Promise<Response | null> {

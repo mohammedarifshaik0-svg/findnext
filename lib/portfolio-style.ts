@@ -139,6 +139,26 @@ export const portfolioPalettes: Record<string, readonly PortfolioPalette[]> = {
     { id: "parchment", name: "Parchment", description: "Warm archival paper", colors: ["#292524", "#a16207", "#f7eedb"], background: "#f7eedb" },
     { id: "sage", name: "Sage", description: "Calm botanical paper", colors: ["#1c2520", "#6b7c6a", "#eef1e9"], background: "#eef1e9" },
   ],
+  "p2-signal": [
+    { id: "voltage", name: "Voltage", description: "Cobalt signal with acid telemetry", colors: ["#b8ff36", "#1746ff", "#35d7ff"], background: "#05080f" },
+    { id: "infrared", name: "Infrared", description: "Hot coral against midnight hardware", colors: ["#ff6b4a", "#ff2f92", "#6c4dff"], background: "#08070d" },
+    { id: "terminal", name: "Terminal", description: "Phosphor green and deep machine black", colors: ["#77ff77", "#00c896", "#164e3c"], background: "#030806" },
+  ],
+  "p2-orbit": [
+    { id: "cosmos", name: "Cosmos", description: "Ultraviolet, coral and stellar blue", colors: ["#fb7185", "#7c3aed", "#38bdf8"], background: "#070318" },
+    { id: "eclipse", name: "Eclipse", description: "Solar gold through deep-space violet", colors: ["#fbbf24", "#6d28d9", "#c026d3"], background: "#090414" },
+    { id: "nebula", name: "Nebula", description: "Mint light and cosmic indigo", colors: ["#5eead4", "#4f46e5", "#a855f7"], background: "#030712" },
+  ],
+  "p2-archive": [
+    { id: "redline", name: "Redline", description: "Museum paper with urgent vermilion", colors: ["#ff4d00", "#181818", "#8b8b82"], background: "#f2efe7" },
+    { id: "cobalt-index", name: "Cobalt Index", description: "International blue on cool stock", colors: ["#1746ff", "#111111", "#747b86"], background: "#f4f5f2" },
+    { id: "forest-index", name: "Forest Index", description: "Institutional green on warm paper", colors: ["#17624b", "#191c1a", "#7c817c"], background: "#f1eee4" },
+  ],
+  "p2-kinetic": [
+    { id: "highlighter", name: "Highlighter", description: "Acid yellow with poster pink", colors: ["#ffe600", "#ff3d81", "#111111"], background: "#f7f2e8" },
+    { id: "traffic", name: "Traffic", description: "Safety orange and electric cobalt", colors: ["#ff5c00", "#1647ff", "#101010"], background: "#f4efe5" },
+    { id: "ultraviolet", name: "Ultraviolet", description: "Purple impact with neon chartreuse", colors: ["#7c3aed", "#c7ff2f", "#121014"], background: "#f5f0fa" },
+  ],
 };
 
 export const defaultPaletteForTheme: Record<string, string> = {
@@ -150,6 +170,10 @@ export const defaultPaletteForTheme: Record<string, string> = {
   "mono-editorial": "ink",
   "mono-glass": "slate",
   "mono-paper": "paper",
+  "p2-signal": "voltage",
+  "p2-orbit": "cosmos",
+  "p2-archive": "redline",
+  "p2-kinetic": "highlighter",
 };
 
 export const textFinishes: Record<string, readonly TextFinish[]> = {
@@ -277,6 +301,26 @@ export const textFinishes: Record<string, readonly TextFinish[]> = {
     { id: "sepia", name: "Sepia", description: "Warm archival ink", primary: "#3f2d20", muted: "#8b735f" },
     { id: "forest", name: "Forest", description: "Quiet botanical ink", primary: "#183126", muted: "#617367" },
   ],
+  "p2-signal": [
+    { id: "console", name: "Console", description: "Crisp interface white", primary: "#f7fbff", muted: "#9aa8ba" },
+    { id: "ice", name: "Ice", description: "Cool technical clarity", primary: "#e8f5ff", muted: "#8aaac2" },
+    { id: "phosphor", name: "Phosphor", description: "Soft terminal luminosity", primary: "#edffea", muted: "#83a98c" },
+  ],
+  "p2-orbit": [
+    { id: "starlight", name: "Starlight", description: "Bright celestial contrast", primary: "#fffaff", muted: "#b7aacb" },
+    { id: "lunar", name: "Lunar", description: "Cool moonlit type", primary: "#eef2ff", muted: "#9da9c8" },
+    { id: "rose-light", name: "Rose Light", description: "Warm atmospheric type", primary: "#fff1f2", muted: "#c4a3b1" },
+  ],
+  "p2-archive": [
+    { id: "carbon", name: "Carbon", description: "Dense exhibition ink", primary: "#171717", muted: "#67675f" },
+    { id: "blueblack", name: "Blue Black", description: "Cool catalog authority", primary: "#111827", muted: "#667085" },
+    { id: "umber", name: "Umber", description: "Warm archival typography", primary: "#29211c", muted: "#76675c" },
+  ],
+  "p2-kinetic": [
+    { id: "poster-ink", name: "Poster Ink", description: "Hard graphic contrast", primary: "#111111", muted: "#55514b" },
+    { id: "midnight-ink", name: "Midnight Ink", description: "Deep blue-black impact", primary: "#10172a", muted: "#596276" },
+    { id: "plum-ink", name: "Plum Ink", description: "Expressive dark plum", primary: "#281426", muted: "#745d70" },
+  ],
 };
 
 export const defaultTextFinishForTheme: Record<string, string> = {
@@ -288,6 +332,10 @@ export const defaultTextFinishForTheme: Record<string, string> = {
   "mono-editorial": "pearl",
   "mono-glass": "frost",
   "mono-paper": "graphite",
+  "p2-signal": "console",
+  "p2-orbit": "starlight",
+  "p2-archive": "carbon",
+  "p2-kinetic": "poster-ink",
 };
 
 export function palettesForTheme(theme: string) {

@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, Globe2, History, Loader2, LockKeyhole, Monitor, Smartphone, Users } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, Gauge, Globe2, History, Loader2, LockKeyhole, Monitor, MousePointerClick, Smartphone, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Analytics = {
   plan: "free" | "live" | "flex" | "care";
   totalViews: number;
   detailed: boolean;
+  advancedFeatureAvailable: boolean;
+  advancedEngagement: boolean;
   historyDays: number | null;
   rangeDays: number | null;
   availableRanges: number[];
@@ -15,6 +17,13 @@ type Analytics = {
   days: { date: string; views: number }[];
   sources: { source: string; views: number }[];
   devices: { device: string; views: number }[];
+  engagement: null | {
+    totalActions: number;
+    engagementRate: number;
+    actions: { eventType: string; label: string; count: number }[];
+    showcases: { title: string; views: number }[];
+    topContent: { title: string; opens: number }[];
+  };
 };
 
 const previewBars = [18, 34, 26, 52, 43, 68, 48, 76, 58, 84, 66, 91, 72, 88];
@@ -89,6 +98,22 @@ export function AnalyticsPanel({ onUpgrade }: { onUpgrade: () => void }) {
           <List title="Devices" rows={data.devices.map((item) => [item.device, item.views])} empty="Devices appear after your first visit." icon={data.devices[0]?.device === "mobile" ? Smartphone : Monitor} preview={detailedLocked} />
         </LockedFeature>
       </div>
+      {data.advancedFeatureAvailable && (
+        <LockedFeature locked={!data.advancedEngagement} tier="Flex" title="Recruiter engagement" description="See which portfolio actions, Showcases and proof links turn a visit into real interest." onUpgrade={onUpgrade}>
+          <div className="space-y-4">
+            <div className="vxl-metric-grid">
+              <Metric icon={Gauge} label="Engagement rate" value={data.engagement ? `${data.engagement.engagementRate}%` : "—"} />
+              <Metric icon={MousePointerClick} label="Meaningful actions" value={data.engagement?.totalActions ?? "—"} />
+              <Metric icon={BriefcaseBusiness} label="Top Showcase" value={data.engagement?.showcases[0]?.title ?? "No activity yet"} />
+            </div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <List title="Visitor actions" rows={(data.engagement?.actions ?? []).map((item) => [item.label, item.count])} empty="Actions appear after visitors interact with your portfolio." icon={MousePointerClick} />
+              <List title="Top Showcases" rows={(data.engagement?.showcases ?? []).map((item) => [item.title, item.views])} empty="Showcase opens will appear here." icon={BriefcaseBusiness} />
+              <List title="Proof and links" rows={(data.engagement?.topContent ?? []).map((item) => [item.title, item.opens])} empty="Evidence and external-link opens will appear here." icon={Globe2} />
+            </div>
+          </div>
+        </LockedFeature>
+      )}
       <LockedFeature locked={careLocked} tier="Care" title="One-year history" description="Keep a longer view of your portfolio performance and career momentum." onUpgrade={onUpgrade}>
         <div className="vxl-history-card"><History /><span><strong>365-day analytics history</strong><small>{data.plan === "care" ? "Included with Care" : "Upgrade to Care when you need a longer record."}</small></span></div>
       </LockedFeature>

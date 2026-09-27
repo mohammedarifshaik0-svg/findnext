@@ -29,6 +29,23 @@ function optionsFor(suggestion: Suggestion): Option[] {
   return [{ id: "recommended", label: "Saved suggestion", text: suggestion.result_text, why: "Generated with the earlier VXL writing assistant." }];
 }
 
+async function readJson(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) return { error: "AI Writing returned an unexpected response. No improvement was charged." };
+  return response.json();
+}
+
+async function recoverSuggestion(id: string) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(`/api/ai/improve?id=${encodeURIComponent(id)}`, { cache: "no-store" });
+    const result = await readJson(response);
+    if (response.ok && result.status === "complete") return result as Suggestion;
+    if (response.ok && result.status === "failed") return null;
+    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+  }
+  return null;
+}
+
 export function AiWriting({ headline, summary, context, onApply }: { headline: string; summary: string; context: WritingContext; onApply: (field: Field, value: string) => void }) {
   const [usage, setUsage] = useState<Usage | null>(null);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
@@ -54,6 +71,7 @@ export function AiWriting({ headline, summary, context, onApply }: { headline: s
   }, []);
 
   async function improve(field: Field) {
+    const requestId = crypto.randomUUID();
     setBusyField(field);
     setMessage("");
     setSuggestion(null);
@@ -63,7 +81,7 @@ export function AiWriting({ headline, summary, context, onApply }: { headline: s
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          id: crypto.randomUUID(),
+          id: requestId,
           field,
           text: field === "headline" ? headline : summary,
           targetRole,
@@ -72,15 +90,22 @@ export function AiWriting({ headline, summary, context, onApply }: { headline: s
         }),
         signal: AbortSignal.timeout(55000),
       });
-      const result = await response.json();
+      const result = await readJson(response);
       if (!response.ok) throw new Error(result.error || "Could not generate suggestions.");
       setSuggestion(result);
       trackEvent("ai_improve_used", { feature_name: field, source: "writing_studio" });
       await refresh().catch(() => setMessage("Suggestions are saved. Reload to refresh your remaining allowance."));
     } catch (error) {
-      setMessage(error instanceof DOMException && error.name === "TimeoutError"
-        ? "AI Writing is taking longer than expected. No improvement is charged unless a result is saved. Reload to check saved sessions before retrying."
-        : error instanceof Error ? error.message : "Could not reach AI Writing. Reload to check saved suggestions before retrying.");
+      const recovered = await recoverSuggestion(requestId).catch(() => null);
+      if (recovered) {
+        setSuggestion(recovered);
+        setMessage("The connection paused, but your completed suggestions were recovered safely.");
+        await refresh().catch(() => undefined);
+      } else {
+        setMessage(error instanceof DOMException && error.name === "TimeoutError"
+          ? "AI Writing is taking longer than expected. No improvement is charged unless a result is saved. Your request was checked before retry became available."
+          : error instanceof Error ? error.message : "Could not reach AI Writing. No improvement was charged unless a result was saved.");
+      }
     } finally {
       setBusyField(null);
     }

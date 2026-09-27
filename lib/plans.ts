@@ -1,12 +1,22 @@
 export type BillingCycle = "28_days" | "annual";
 export type PaidPlan = "live" | "flex" | "care";
 
+export function hasBrandFreePortfolio(plan: unknown, status: unknown, periodEndsAt: unknown, now = Date.now()) {
+  return (plan === "flex" || plan === "care")
+    && status === "active"
+    && typeof periodEndsAt === "string"
+    && new Date(periodEndsAt).getTime() > now;
+}
+
 export type PlanFeature = {
   label: string;
   detail: string;
   included: boolean;
   comingSoon?: boolean;
 };
+
+const customDomainsAvailable = process.env.NEXT_PUBLIC_VXL_PHASE2_CUSTOM_DOMAINS === "true";
+const prioritySupportAvailable = process.env.NEXT_PUBLIC_VXL_PHASE2_PRIORITY_SUPPORT === "true";
 
 export const PLAN_PRICES: Record<PaidPlan, Record<BillingCycle, number>> = {
   live: { "28_days": 99, annual: 999 },
@@ -63,8 +73,8 @@ export const PLANS: Array<{
       { label: "Analytics", detail: "Detailed insights for 90 days", included: true },
       { label: "Version history", detail: "Restore versions from 90 days", included: true },
       { label: "Brand-free portfolio", detail: "No VXL wordmark", included: true },
-      { label: "Custom domain", detail: "Connection workflow is being built", included: false, comingSoon: true },
-      { label: "Priority support", detail: "Faster email support", included: true },
+      { label: "Custom domain", detail: customDomainsAvailable ? "Self-service domain connection" : "Connection workflow is being built", included: customDomainsAvailable, comingSoon: !customDomainsAvailable },
+      { label: "Priority support", detail: "Available with Care", included: false },
       { label: "Managed updates", detail: "Not included", included: false },
     ],
   },
@@ -82,8 +92,8 @@ export const PLANS: Array<{
       { label: "Version history", detail: "Restore versions from 1 year", included: true },
       { label: "Managed update", detail: "1 request every 28 days", included: true },
       { label: "Brand-free portfolio", detail: "No VXL wordmark", included: true },
-      { label: "Custom domain setup", detail: "Guided connection is being built", included: false, comingSoon: true },
-      { label: "Personal priority help", detail: "Real human support", included: true },
+      { label: "Custom domain setup", detail: customDomainsAvailable ? "Guided connection with VXL" : "Guided connection is being built", included: customDomainsAvailable, comingSoon: !customDomainsAvailable },
+      { label: "Personal priority help", detail: prioritySupportAvailable ? "In-dashboard priority request centre" : "Support workflow is being built", included: prioritySupportAvailable, comingSoon: !prioritySupportAvailable },
     ],
   },
 ];

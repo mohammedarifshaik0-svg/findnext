@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   CalendarDays,
   Check,
@@ -21,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaymentCheckout } from "@/app/payment-checkout";
 import { PLAN_LIMITS, PLAN_PRICES, PLANS, UNIVERSAL_BENEFITS, type BillingCycle, type PaidPlan as Plan } from "@/lib/plans";
+import { PLAN_GUIDE_ENABLED } from "@/lib/plan-guide";
 import { trackEvent, trackOncePerSession } from "@/lib/analytics";
 
 type SubscriptionPlan = "trial" | Plan;
@@ -72,6 +74,8 @@ type UpgradeConfirmation = {
   plan: Plan;
   periodEndsAt: string;
 };
+
+const PlanGuide = dynamic(() => import("@/app/plan-guide").then((module) => module.PlanGuide));
 
 const planNames: Record<SubscriptionPlan, string> = {
   trial: "Free trial",
@@ -271,6 +275,10 @@ export function PlansPanel({ email }: { email: string }) {
     }
   };
 
+  const focusPlan = (plan: Plan) => {
+    window.requestAnimationFrame(() => document.getElementById(`vxl-plan-${plan}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  };
+
   const usageRows = activeSubscription && activeSubscription.plan !== "trial"
     ? [
         { key: "published_updates" as const, label: "Published updates" },
@@ -388,6 +396,7 @@ export function PlansPanel({ email }: { email: string }) {
             return (
               <article
                 key={plan.id}
+                id={`vxl-plan-${plan.id}`}
                 className={`vxl-plan-card relative rounded-2xl border p-5 ${
                   isCurrent
                     ? "border-emerald-300 bg-emerald-50/50"
@@ -452,6 +461,8 @@ export function PlansPanel({ email }: { email: string }) {
             );
           })}
         </div>
+
+        {PLAN_GUIDE_ENABLED && <PlanGuide onSelectPlan={focusPlan} />}
 
         {!checkout.enabled && <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <p className="text-sm font-semibold text-slate-900">Included with every paid plan</p>

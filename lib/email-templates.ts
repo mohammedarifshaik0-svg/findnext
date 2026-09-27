@@ -1,3 +1,6 @@
+import { CARE_SUPPORT_ENABLED } from "@/lib/care-support";
+import { CUSTOM_DOMAINS_ENABLED } from "@/lib/custom-domains";
+
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character] ?? character);
 
 const SITE_URL = "https://www.thevxl.com";
@@ -13,8 +16,8 @@ type PlanEmailInput = { name: string; requestId: string; plan: string; cycle: st
 
 const planBenefits: Record<string, readonly string[]> = {
   LIVE: ["One portfolio hosted on your VXL address", "Every template, palette, typeface and visual effect", "2 published updates and 1 résumé re-import every 28 days", "3 fact-checked AI writing improvements every 28 days", "Lifetime visit total and latest published version", "Small “Made with VXL” wordmark at the bottom"],
-  FLEX: ["Everything included in Live", "Unlimited published updates and 5 résumé re-imports every 28 days", "30 fact-checked AI writing improvements every 28 days", "Detailed analytics and version history for 90 days", "No VXL wordmark on your portfolio", "Priority email support", "Custom-domain connection — coming soon"],
-  CARE: ["Everything included in Flex", "10 résumé re-imports and 60 fact-checked AI improvements every 28 days", "Detailed analytics and version history for 1 year", "No VXL wordmark on your portfolio", "1 human-managed portfolio update every 28 days", "Personal priority help", "Guided custom-domain setup — coming soon"],
+  FLEX: ["Everything included in Live", "Unlimited published updates and 5 résumé re-imports every 28 days", "30 fact-checked AI writing improvements every 28 days", "Detailed analytics and version history for 90 days", "No VXL branding on your portfolio", CUSTOM_DOMAINS_ENABLED ? "Self-service custom-domain connection" : "Custom-domain connection — coming soon"],
+  CARE: ["Everything included in Flex", "10 résumé re-imports and 60 fact-checked AI improvements every 28 days", "Detailed analytics and version history for 1 year", "No VXL branding on your portfolio", "1 human-managed portfolio update every 28 days", CARE_SUPPORT_ENABLED ? "In-dashboard personal priority help" : "Personal priority help — coming soon", CUSTOM_DOMAINS_ENABLED ? "Guided custom-domain setup" : "Guided custom-domain setup — coming soon"],
 };
 
 const safeBenefits = (input: PlanEmailInput) => input.benefits?.length ? input.benefits : planBenefits[input.plan.toUpperCase()] ?? [];

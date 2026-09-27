@@ -44,6 +44,8 @@ export type VxlEventName =
   | "portfolio_published"
   | "pricing_viewed"
   | "plan_selected"
+  | "plan_guide_opened"
+  | "plan_guide_recommendation_selected"
   | "checkout_started"
   | "payment_success"
   | "payment_failed"
