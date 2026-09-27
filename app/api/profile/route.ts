@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { CUSTOM_DOMAINS_ENABLED } from "@/lib/custom-domains";
 import { PORTFOLIO_ANALYSIS_ENABLED } from "@/lib/portfolio-analysis";
 import { defaultTextFinishForTheme, textFinishesForTheme } from "@/lib/portfolio-style";
-import { PHASE_2_SHOWCASES_ENABLED, customSectionLimit, isShowcasePlan, normalizeAdvancedCustomization, showcaseSlug, type AdvancedCustomization, type CustomSection, type PortfolioShowcase, type ShowcaseLinkKind } from "@/lib/phase2-showcases";
+import { PHASE_2_SHOWCASES_ENABLED, customSectionLimit, isShowcasePlan, normalizeAdvancedCustomization, normalizeHttpsUrl, showcaseSlug, type AdvancedCustomization, type CustomSection, type PortfolioShowcase, type ShowcaseLinkKind } from "@/lib/phase2-showcases";
 import { CARE_SUPPORT_ENABLED, isActiveCarePlan } from "@/lib/care-support";
 
 type Experience = { id?: string; company?: string; role?: string; location?: string; startDate?: string; endDate?: string; isCurrent?: boolean; description?: string };
@@ -12,16 +12,6 @@ type Item = { id?: string; itemType?: string; title?: string; subtitle?: string;
 type Payload = { fullName?: string; headline?: string; professionalSummary?: string; email?: string; phone?: string; city?: string; country?: string; pronouns?: string; portfolioSlug?: string; theme?: string; accent?: string; textTone?: string; effectIntensity?: number; isPublic?: boolean; consentProfileStorage?: boolean; consentTalentDiscovery?: boolean; experiences?: Experience[]; education?: Education[]; items?: Item[]; showcases?: PortfolioShowcase[]; customSections?: CustomSection[]; advancedCustomization?: AdvancedCustomization };
 const clean = (value: unknown, max = 4000) => typeof value === "string" ? value.trim().slice(0, max) : "";
 const linkKinds = new Set<ShowcaseLinkKind>(["live", "github", "figma", "drive", "document", "credential", "other"]);
-const safeHttpsUrl = (value: unknown, max = 1000) => {
-  const candidate = clean(value, max);
-  if (!candidate) return "";
-  try {
-    const parsed = new URL(candidate);
-    return parsed.protocol === "https:" ? parsed.toString() : "";
-  } catch {
-    return "";
-  }
-};
 const normalizeShowcases = (rows: PortfolioShowcase[] = []) => rows.slice(0, 30).map((row, index) => ({
   id: clean(row.id, 80) || crypto.randomUUID(),
   source_type: "project" as const,
@@ -33,14 +23,14 @@ const normalizeShowcases = (rows: PortfolioShowcase[] = []) => rows.slice(0, 30)
   approach: clean(row.approach),
   outcome: clean(row.outcome),
   links: (Array.isArray(row.links) ? row.links : []).slice(0, 12).flatMap((link) => {
-    const url = safeHttpsUrl(link.url);
+    const url = normalizeHttpsUrl(link.url);
     if (!url) return [];
     return [{ id: clean(link.id, 80) || crypto.randomUUID(), label: clean(link.label, 80) || "View evidence", url, kind: linkKinds.has(link.kind) ? link.kind : "other" }];
   }),
   media: (Array.isArray(row.media) ? row.media : []).slice(0, 10).flatMap((media) => {
     const assetId = clean(media.assetId, 100);
     if (assetId) return [{ id: clean(media.id, 80) || assetId, assetId, url: "", alt: clean(media.alt, 180), caption: clean(media.caption, 300), kind: media.kind === "document" ? "document" as const : "image" as const, name: clean(media.name, 180) }];
-    const url = safeHttpsUrl(media.url);
+    const url = normalizeHttpsUrl(media.url);
     if (!url) return [];
     return [{ id: clean(media.id, 80) || crypto.randomUUID(), assetId: "", url, alt: clean(media.alt, 180), caption: clean(media.caption, 300), kind: "image" as const, name: "" }];
   }),
@@ -57,7 +47,7 @@ const normalizeCustomSections = (rows: CustomSection[] = []) => rows.slice(0, 50
   items: (Array.isArray(section.items) ? section.items : []).slice(0, 20).map((item, itemIndex) => ({
     id: clean(item.id, 80) || crypto.randomUUID(),
     title: clean(item.title, 180), subtitle: clean(item.subtitle, 180), description: clean(item.description),
-    url: safeHttpsUrl(item.url, 500), date_label: clean(item.dateLabel, 80), sort_order: itemIndex,
+    url: normalizeHttpsUrl(item.url, 500), date_label: clean(item.dateLabel, 80), sort_order: itemIndex,
   })).filter((item) => item.title),
 })).filter((section) => section.title);
 const privateJson = (body: unknown, init?: ResponseInit) => Response.json(body, {
