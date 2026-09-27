@@ -1,11 +1,15 @@
 export type BillingCycle = "28_days" | "annual";
 export type PaidPlan = "live" | "flex" | "care";
 
+export function hasActivePlanAccess(status: unknown, periodEndsAt: unknown, now = Date.now()) {
+  if (status !== "active" || typeof periodEndsAt !== "string") return false;
+  const endsAt = new Date(periodEndsAt).getTime();
+  return Number.isFinite(endsAt) && endsAt > now;
+}
+
 export function hasBrandFreePortfolio(plan: unknown, status: unknown, periodEndsAt: unknown, now = Date.now()) {
   return (plan === "flex" || plan === "care")
-    && status === "active"
-    && typeof periodEndsAt === "string"
-    && new Date(periodEndsAt).getTime() > now;
+    && hasActivePlanAccess(status, periodEndsAt, now);
 }
 
 export type PlanFeature = {
