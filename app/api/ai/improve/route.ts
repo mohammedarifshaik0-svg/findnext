@@ -226,16 +226,21 @@ export async function POST(request: Request) {
       output: Output.object({ schema: writingSchema, name: "vxl_writing_options", description: "Three fact-grounded portfolio writing alternatives." }),
       instructions: instructions(field, tone),
       prompt: JSON.stringify({ CURRENT_TEXT: source, TARGET_ROLE: targetRole || null, VERIFIED_PROFILE_CONTEXT: context }),
-      reasoning: "medium",
-      maxOutputTokens: field === "headline" ? 1200 : 2600,
+      // Medium reasoning could consume the entire headline token budget before
+      // the model emitted the required JSON object. Keep reasoning light and
+      // leave enough room for all three validated alternatives.
+      reasoning: "low",
+      maxOutputTokens: field === "headline" ? 2400 : 6000,
       maxRetries: 2,
       abortSignal: AbortSignal.timeout(45000),
       providerOptions: {
         gateway: { models: fallbackModels, user: userId, tags: ["feature:ai-writing", `field:${field}`, "version:v2.1"], disallowPromptTraining: true, sort: "ttft" } satisfies GatewayProviderOptions,
       },
     });
-    if (!generated.output || generated.finishReason !== "stop") throw new Error("unusable_output_finish");
-    const options = normalizeOptions(generated.output, field, source, context);
+    if (generated.finishReason !== "stop") throw new Error(`unusable_output_finish_${generated.finishReason}`);
+    const output = generated.output;
+    if (!output) throw new Error("unusable_output_missing");
+    const options = normalizeOptions(output, field, source, context);
     const saved = await admin.rpc("vxl_ai_finish", {
       account_id: userId,
       request_id: id,
