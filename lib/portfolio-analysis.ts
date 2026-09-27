@@ -1,6 +1,6 @@
 import type { CustomSection, PortfolioShowcase } from "@/lib/phase2-showcases";
 
-export const PORTFOLIO_ANALYSIS_ENABLED = process.env.NEXT_PUBLIC_VXL_PHASE2_ANALYSIS === "true";
+export const PORTFOLIO_ANALYSIS_ENABLED = process.env.NEXT_PUBLIC_VXL_PHASE2_ANALYSIS !== "false";
 
 export type PortfolioAnalysisInput = {
   fullName: string;

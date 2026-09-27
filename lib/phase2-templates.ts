@@ -1,4 +1,4 @@
-export const PHASE_2_TEMPLATES_ENABLED = process.env.NEXT_PUBLIC_VXL_PHASE2_TEMPLATES === "true";
+export const PHASE_2_TEMPLATES_ENABLED = process.env.NEXT_PUBLIC_VXL_PHASE2_TEMPLATES !== "false";
 
 export const corePortfolioTemplates = [
   { id: "studio", name: "Editorial", description: "Deep navy, champagne details and an elegant career narrative.", mood: "Refined · Story-led", swatch: "from-[#090e22] via-[#1a234c] to-[#dfba86]" },

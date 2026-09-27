@@ -16,7 +16,7 @@ export type PlanFeature = {
 };
 
 const customDomainsAvailable = process.env.NEXT_PUBLIC_VXL_PHASE2_CUSTOM_DOMAINS === "true";
-const prioritySupportAvailable = process.env.NEXT_PUBLIC_VXL_PHASE2_PRIORITY_SUPPORT === "true";
+const prioritySupportAvailable = process.env.NEXT_PUBLIC_VXL_PHASE2_PRIORITY_SUPPORT !== "false";
 
 export const PLAN_PRICES: Record<PaidPlan, Record<BillingCycle, number>> = {
   live: { "28_days": 99, annual: 999 },

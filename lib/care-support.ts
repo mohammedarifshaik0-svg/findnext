@@ -1,4 +1,4 @@
-export const CARE_SUPPORT_ENABLED = process.env.NEXT_PUBLIC_VXL_PHASE2_PRIORITY_SUPPORT === "true";
+export const CARE_SUPPORT_ENABLED = process.env.NEXT_PUBLIC_VXL_PHASE2_PRIORITY_SUPPORT !== "false";
 
 export const CARE_SUPPORT_CATEGORIES = [
   "portfolio",

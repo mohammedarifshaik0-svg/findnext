@@ -102,7 +102,7 @@ export function normalizeAdvancedCustomization(input: unknown): AdvancedCustomiz
   };
 }
 
-export const PHASE_2_SHOWCASES_ENABLED = process.env.NEXT_PUBLIC_VXL_PHASE2_SHOWCASES === "true";
+export const PHASE_2_SHOWCASES_ENABLED = process.env.NEXT_PUBLIC_VXL_PHASE2_SHOWCASES !== "false";
 
 export function isShowcasePlan(plan: unknown, status: unknown, periodEndsAt: unknown, now = Date.now()) {
   if (status !== "active" || (plan !== "flex" && plan !== "care")) return false;

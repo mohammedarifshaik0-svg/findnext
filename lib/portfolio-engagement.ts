@@ -1,4 +1,4 @@
-export const ADVANCED_ENGAGEMENT_ANALYTICS_ENABLED = process.env.NEXT_PUBLIC_VXL_PHASE2_ANALYTICS === "true";
+export const ADVANCED_ENGAGEMENT_ANALYTICS_ENABLED = process.env.NEXT_PUBLIC_VXL_PHASE2_ANALYTICS !== "false";
 
 export const ENGAGEMENT_EVENT_TYPES = [
   "showcase_view",

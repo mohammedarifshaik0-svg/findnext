@@ -1,6 +1,6 @@
 import type { PaidPlan } from "@/lib/plans";
 
-export const PLAN_GUIDE_ENABLED = process.env.NEXT_PUBLIC_VXL_PHASE2_PLAN_GUIDE === "true";
+export const PLAN_GUIDE_ENABLED = process.env.NEXT_PUBLIC_VXL_PHASE2_PLAN_GUIDE !== "false";
 
 export type UpdateFrequency = "occasionally" | "frequently";
 export type YesNo = "yes" | "no";
