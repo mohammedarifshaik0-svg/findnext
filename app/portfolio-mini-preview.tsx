@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react";
 import { paletteFor, portfolioStyle } from "@/lib/portfolio-style";
 import { isPhase2PortfolioTemplate, normalizePortfolioTheme } from "@/lib/phase2-templates";
+import { normalizeAdvancedCustomization, type AdvancedCustomization } from "@/lib/phase2-showcases";
 
 type PreviewData = {
   fullName: string;
@@ -9,6 +11,7 @@ type PreviewData = {
   accent: string;
   textTone: string;
   effectIntensity: number;
+  advancedCustomization?: AdvancedCustomization;
   photoPath?: string | null;
   portfolioSlug?: string;
   experiences: Array<{ id: string; role: string; company: string }>;
@@ -31,34 +34,42 @@ export function PortfolioMiniPreview({ data, showWordmark = true }: { data: Prev
   const theme = normalizePortfolioTheme(data.theme);
   const palette = paletteFor(theme, data.accent);
   const style = portfolioStyle(theme, data.accent, data.effectIntensity, data.textTone);
+  const advanced = normalizeAdvancedCustomization(data.advancedCustomization);
+  const order = Object.fromEntries(advanced.sectionOrder.map((key, index) => [`--vxl-mini-order-${key}`, String((index + 1) * 10)]));
   const atmosphere = {
     backgroundImage: `radial-gradient(circle at 50% 8%, ${palette.colors[1]}88, transparent 34%), radial-gradient(circle at 0% 75%, ${palette.colors[0]}55, transparent 32%), radial-gradient(circle at 100% 70%, ${palette.colors[2]}55, transparent 32%)`,
     opacity: Math.max(0.08, data.effectIntensity / 100),
   };
-  const focusStyle = style;
+  const focusStyle = { ...style, ...order } as CSSProperties;
+  const customizationProps = {
+    "data-vxl-density": advanced.density,
+    "data-vxl-corners": advanced.cornerStyle,
+    "data-vxl-headings": advanced.headingStyle,
+    "data-vxl-showcases": advanced.showcaseStyle,
+  };
   if (isPhase2PortfolioTemplate(theme))
     return (
-      <div className={`p2-mini p2-mini-${theme.replace("p2-", "")} relative min-h-[1350px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]`} style={focusStyle}>
+      <div className={`p2-mini p2-mini-${theme.replace("p2-", "")} vxl-mini-custom relative min-h-[1350px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]`} style={focusStyle} {...customizationProps}>
         <div className="p2-mini-glow" style={atmosphere} />
         <header className="p2-mini-header">
           <span>{theme === "p2-archive" ? "CATALOG / 001" : theme === "p2-kinetic" ? "MAKE IT / MATTER" : "PORTFOLIO / LIVE"}</span>
           <i>{theme.replace("p2-", "")}</i>
         </header>
-        <section className="p2-mini-hero">
+        <section className="p2-mini-hero" data-vxl-mini-section="story">
           <p>{data.headline || "Professional headline"}</p>
           <h2>{data.fullName || "Your name"}</h2>
           <div className="p2-mini-portrait"><b>{initials(data.fullName)}</b></div>
           <small>{data.professionalSummary || "Your professional story will appear here."}</small>
         </section>
-        <section className="p2-mini-skills">
+        <section className="p2-mini-skills" data-vxl-mini-section="skills">
           <span>CAPABILITY</span>
           <div>{skills(data).map((skill, index) => <b key={skill.id}><i>0{index + 1}</i>{skill.title}</b>)}</div>
         </section>
-        <section className="p2-mini-work">
+        <section className="p2-mini-work" data-vxl-mini-section="projects">
           <span>SELECTED PROOF</span>
           {projects(data).map((project, index) => <article key={project.id}><i>0{index + 1}</i><h3>{project.title}</h3><p>{project.subtitle || "Case study"}</p></article>)}
         </section>
-        <section className="p2-mini-record">
+        <section className="p2-mini-record" data-vxl-mini-section="experience">
           <span>TRAJECTORY</span>
           {data.experiences.slice(0, 3).map((row) => <article key={row.id}><b>{row.role || "Role"}</b><p>{row.company || "Company"}</p></article>)}
         </section>
@@ -68,7 +79,7 @@ export function PortfolioMiniPreview({ data, showWordmark = true }: { data: Prev
 
   if (["canvas", "mono-chrome", "mono-glass"].includes(theme))
     return (
-      <div className="relative min-h-[1350px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]" style={focusStyle}>
+      <div className="vxl-mini-custom relative min-h-[1350px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]" style={focusStyle} {...customizationProps}>
         <div className="absolute inset-0" style={atmosphere} />
         <div className="relative text-center">
           <p className="text-[9px] font-semibold uppercase tracking-[.25em] text-slate-400">Professional portfolio</p>
@@ -119,7 +130,7 @@ export function PortfolioMiniPreview({ data, showWordmark = true }: { data: Prev
 
   if (["ledger", "mono-brutalist", "mono-editorial", "mono-paper"].includes(theme))
     return (
-      <div className="relative min-h-[1350px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]" style={focusStyle}>
+      <div className="vxl-mini-custom relative min-h-[1350px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]" style={focusStyle} {...customizationProps}>
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -178,7 +189,7 @@ export function PortfolioMiniPreview({ data, showWordmark = true }: { data: Prev
     );
 
   return (
-    <div className="relative min-h-[1350px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)] [font-family:Georgia,serif]" style={focusStyle}>
+    <div className="vxl-mini-custom relative min-h-[1350px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)] [font-family:Georgia,serif]" style={focusStyle} {...customizationProps}>
       <div
         className="pointer-events-none absolute inset-0"
         style={{
