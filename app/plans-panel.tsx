@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaymentCheckout } from "@/app/payment-checkout";
-import { PLAN_LIMITS, PLAN_PRICES, PLANS, UNIVERSAL_BENEFITS, type BillingCycle, type PaidPlan as Plan } from "@/lib/plans";
+import { hasActivePlanAccess, PLAN_LIMITS, PLAN_PRICES, PLANS, UNIVERSAL_BENEFITS, type BillingCycle, type PaidPlan as Plan } from "@/lib/plans";
 import { PLAN_GUIDE_ENABLED } from "@/lib/plan-guide";
 import { trackEvent, trackOncePerSession } from "@/lib/analytics";
 
@@ -145,12 +145,7 @@ export function PlansPanel({ email }: { email: string }) {
 
   const activeSubscription = useMemo(() => {
     const subscription = billing.subscription;
-    if (
-      !subscription ||
-      subscription.status !== "active" ||
-      !subscription.period_ends_at ||
-      new Date(subscription.period_ends_at).getTime() <= now
-    ) {
+    if (!subscription || !hasActivePlanAccess(subscription.status, subscription.period_ends_at, now)) {
       return null;
     }
     return subscription;
@@ -218,7 +213,7 @@ export function PlansPanel({ email }: { email: string }) {
       setActivationCode("");
       setUpgrade({ plan, periodEndsAt });
       const refreshed = await load();
-      if (refreshed?.subscription?.status === "active" && refreshed.subscription.plan === plan) {
+      if (hasActivePlanAccess(refreshed?.subscription?.status, refreshed?.subscription?.period_ends_at) && refreshed?.subscription?.plan === plan) {
         trackEvent("plan_activated", { plan_name: plan, source: "activation_code" });
       }
     } catch (error) {
@@ -441,7 +436,7 @@ export function PlansPanel({ email }: { email: string }) {
                 </ul>
                 {checkout.enabled ? <PaymentCheckout key={`${plan.id}-${cycle}-${checkoutReferral}`} plan={plan.id} cycle={cycle} email={email} referralCode={checkoutReferral} test={checkout.test} disabled={Boolean(working)} onBusy={busy=>setWorking(busy?plan.id:null)} onActivated={async expectedPlan => {
                   const refreshed = await load();
-                  return refreshed?.subscription?.status === "active" && refreshed.subscription.plan === expectedPlan;
+                  return hasActivePlanAccess(refreshed?.subscription?.status, refreshed?.subscription?.period_ends_at) && refreshed?.subscription?.plan === expectedPlan;
                 }} /> : <Button
                   className="mt-6 w-full"
                   variant={plan.featured && !isCurrent ? "default" : "outline"}
