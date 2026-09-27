@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CUSTOM_DOMAINS_ENABLED } from "@/lib/custom-domains";
 import { PORTFOLIO_ANALYSIS_ENABLED } from "@/lib/portfolio-analysis";
+import { defaultTextFinishForTheme, textFinishesForTheme } from "@/lib/portfolio-style";
 import { PHASE_2_SHOWCASES_ENABLED, customSectionLimit, isShowcasePlan, normalizeAdvancedCustomization, showcaseSlug, type AdvancedCustomization, type CustomSection, type PortfolioShowcase, type ShowcaseLinkKind } from "@/lib/phase2-showcases";
 import { CARE_SUPPORT_ENABLED, isActiveCarePlan } from "@/lib/care-support";
 
@@ -148,7 +149,12 @@ export async function PUT(request: Request) {
     if (sectionLimit !== null && normalizedCustomSections.length > sectionLimit) return Response.json({ error: `Your ${String(membership?.plan).toUpperCase()} plan includes ${sectionLimit} custom sections.` }, { status: 403 });
     if (payload.advancedCustomization !== undefined) normalizedAdvancedCustomization = normalizeAdvancedCustomization(payload.advancedCustomization);
   }
-  const profile = { id: userId, full_name: clean(payload.fullName, 120), headline: clean(payload.headline, 180), professional_summary: clean(payload.professionalSummary), email: clean(payload.email, 180), phone: clean(payload.phone, 40), city: clean(payload.city, 100), country: clean(payload.country, 100), pronouns: clean(payload.pronouns, 40), portfolio_slug: clean(payload.portfolioSlug, 80), theme: clean(payload.theme, 30) || "studio", accent: clean(payload.accent, 30) || "champagne", text_tone: clean(payload.textTone, 30) || "ivory", effect_intensity: effectIntensity, is_public: current?.is_public ?? false, trial_started_at: current?.trial_started_at ?? null, trial_ends_at: current?.trial_ends_at ?? null, consent_profile_storage: true, consent_talent_discovery: Boolean(payload.consentTalentDiscovery), updated_at: now, ...(normalizedAdvancedCustomization ? { advanced_customization: normalizedAdvancedCustomization } : {}) };
+  const profileTheme = clean(payload.theme, 30) || "studio";
+  const requestedTextTone = clean(payload.textTone, 30);
+  const textTone = textFinishesForTheme(profileTheme).some((finish) => finish.id === requestedTextTone)
+    ? requestedTextTone
+    : defaultTextFinishForTheme[profileTheme] ?? "ivory";
+  const profile = { id: userId, full_name: clean(payload.fullName, 120), headline: clean(payload.headline, 180), professional_summary: clean(payload.professionalSummary), email: clean(payload.email, 180), phone: clean(payload.phone, 40), city: clean(payload.city, 100), country: clean(payload.country, 100), pronouns: clean(payload.pronouns, 40), portfolio_slug: clean(payload.portfolioSlug, 80), theme: profileTheme, accent: clean(payload.accent, 30) || "champagne", text_tone: textTone, effect_intensity: effectIntensity, is_public: current?.is_public ?? false, trial_started_at: current?.trial_started_at ?? null, trial_ends_at: current?.trial_ends_at ?? null, consent_profile_storage: true, consent_talent_discovery: Boolean(payload.consentTalentDiscovery), updated_at: now, ...(normalizedAdvancedCustomization ? { advanced_customization: normalizedAdvancedCustomization } : {}) };
   // Profile entitlement fields are not client-writable. This authenticated route
   // performs the narrow server-side draft write after binding the row to userId.
   const { error: profileError } = await createAdminClient().from("profiles").upsert(profile);
