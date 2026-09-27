@@ -212,6 +212,17 @@
 .vxl-sidebar-plan>span { color:color-mix(in srgb,var(--studio-text) 72%,transparent);font-size:.58rem;font-weight:600;line-height:1.45 }
 .vxl-sidebar-plan>small { display:flex;align-items:center;justify-content:space-between;margin-top:.25rem;color:var(--studio-text);font-size:.58rem;font-weight:800 }
 .vxl-sidebar-plan>small svg { width:.72rem;height:.72rem }
+
+/* Keep every workspace destination reachable on shorter laptop screens. */
+.vxl-studio-sidebar > nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: .5rem;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb,var(--studio-text) 22%,transparent) transparent;
+}
 .vxl-dashboard-title { display:flex;align-items:center;flex-wrap:wrap;gap:.75rem;margin-top:.45rem }
 .vxl-dashboard-title h1 { margin-top:0!important }
 .vxl-plan-highlight { --plan-accent:#a1a1aa;position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:2rem;overflow:hidden;padding:1.6rem;border:1px solid color-mix(in srgb,var(--plan-accent) 30%,var(--studio-line));border-radius:1rem;background:radial-gradient(circle at 88% 0%,color-mix(in srgb,var(--plan-accent) 20%,transparent),transparent 38%),linear-gradient(135deg,var(--studio-panel),color-mix(in srgb,var(--studio-panel-2) 66%,var(--studio-panel)));box-shadow:0 20px 55px rgba(0,0,0,.1) }
