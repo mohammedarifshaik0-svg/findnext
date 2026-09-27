@@ -1,4 +1,5 @@
 import { paletteFor, portfolioStyle } from "@/lib/portfolio-style";
+import { isPhase2PortfolioTemplate, normalizePortfolioTheme } from "@/lib/phase2-templates";
 
 type PreviewData = {
   fullName: string;
@@ -27,14 +28,45 @@ const initials = (name: string) =>
     .toUpperCase() || "YN";
 
 export function PortfolioMiniPreview({ data, showWordmark = true }: { data: PreviewData; showWordmark?: boolean }) {
-  const palette = paletteFor(data.theme, data.accent);
-  const style = portfolioStyle(data.theme, data.accent, data.effectIntensity, data.textTone);
+  const theme = normalizePortfolioTheme(data.theme);
+  const palette = paletteFor(theme, data.accent);
+  const style = portfolioStyle(theme, data.accent, data.effectIntensity, data.textTone);
   const atmosphere = {
     backgroundImage: `radial-gradient(circle at 50% 8%, ${palette.colors[1]}88, transparent 34%), radial-gradient(circle at 0% 75%, ${palette.colors[0]}55, transparent 32%), radial-gradient(circle at 100% 70%, ${palette.colors[2]}55, transparent 32%)`,
     opacity: Math.max(0.08, data.effectIntensity / 100),
   };
   const focusStyle = style;
-  if (["canvas", "mono-chrome", "mono-glass"].includes(data.theme))
+  if (isPhase2PortfolioTemplate(theme))
+    return (
+      <div className={`p2-mini p2-mini-${theme.replace("p2-", "")} relative min-h-[1350px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]`} style={focusStyle}>
+        <div className="p2-mini-glow" style={atmosphere} />
+        <header className="p2-mini-header">
+          <span>{theme === "p2-archive" ? "CATALOG / 001" : theme === "p2-kinetic" ? "MAKE IT / MATTER" : "PORTFOLIO / LIVE"}</span>
+          <i>{theme.replace("p2-", "")}</i>
+        </header>
+        <section className="p2-mini-hero">
+          <p>{data.headline || "Professional headline"}</p>
+          <h2>{data.fullName || "Your name"}</h2>
+          <div className="p2-mini-portrait"><b>{initials(data.fullName)}</b></div>
+          <small>{data.professionalSummary || "Your professional story will appear here."}</small>
+        </section>
+        <section className="p2-mini-skills">
+          <span>CAPABILITY</span>
+          <div>{skills(data).map((skill, index) => <b key={skill.id}><i>0{index + 1}</i>{skill.title}</b>)}</div>
+        </section>
+        <section className="p2-mini-work">
+          <span>SELECTED PROOF</span>
+          {projects(data).map((project, index) => <article key={project.id}><i>0{index + 1}</i><h3>{project.title}</h3><p>{project.subtitle || "Case study"}</p></article>)}
+        </section>
+        <section className="p2-mini-record">
+          <span>TRAJECTORY</span>
+          {data.experiences.slice(0, 3).map((row) => <article key={row.id}><b>{row.role || "Role"}</b><p>{row.company || "Company"}</p></article>)}
+        </section>
+        {showWordmark && <footer>Made with VXL</footer>}
+      </div>
+    );
+
+  if (["canvas", "mono-chrome", "mono-glass"].includes(theme))
     return (
       <div className="relative min-h-[1350px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]" style={focusStyle}>
         <div className="absolute inset-0" style={atmosphere} />
@@ -85,7 +117,7 @@ export function PortfolioMiniPreview({ data, showWordmark = true }: { data: Prev
       </div>
     );
 
-  if (["ledger", "mono-brutalist", "mono-editorial", "mono-paper"].includes(data.theme))
+  if (["ledger", "mono-brutalist", "mono-editorial", "mono-paper"].includes(theme))
     return (
       <div className="relative min-h-[1350px] overflow-hidden bg-[var(--portfolio-bg)] p-7 text-[var(--portfolio-text)]" style={focusStyle}>
         <div

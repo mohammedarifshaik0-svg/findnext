@@ -5,6 +5,8 @@ import "./globals.css";
 import "./vxl-enhancements.css";
 import "./vxl-brand-v2.css";
 import "./vxl-launch-polish.css";
+import "./vxl-phase2.css";
+import "./vxl-phase2-templates.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevxl.com";
 

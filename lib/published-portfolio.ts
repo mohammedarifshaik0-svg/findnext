@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PortfolioData } from "@/app/p/[slug]/portfolio-templates";
+import { PHASE_2_SHOWCASES_ENABLED, isShowcasePlan } from "@/lib/phase2-showcases";
 
 type ResumeSnapshot = {
   storage_path: string;
@@ -56,12 +57,26 @@ export async function loadPortfolioAccess(slug: string): Promise<PortfolioAccess
     const ownerHasUnbrandedPlan = ["flex", "care"].includes(ownerPlan)
       && subscription.data?.status === "active"
       && activeAfter(subscription.data?.period_ends_at);
+    const ownerHasPhase2 = PHASE_2_SHOWCASES_ENABLED && isShowcasePlan(ownerPlan, subscription.data?.status, subscription.data?.period_ends_at);
+    let showcases: unknown[] = [];
+    let customSections: unknown[] = [];
+    if (ownerHasPhase2) {
+      const [showcaseResult, sectionResult, sectionItemResult] = await Promise.all([
+        admin.from("portfolio_showcases").select("*").eq("profile_id", accountId).eq("is_enabled", true).order("sort_order"),
+        admin.from("custom_sections").select("*").eq("profile_id", accountId).eq("is_visible", true).order("sort_order"),
+        admin.from("custom_section_items").select("*").eq("profile_id", accountId).order("sort_order"),
+      ]);
+      showcases = showcaseResult.data ?? [];
+      customSections = (sectionResult.data ?? []).map((section) => ({ ...section, items: (sectionItemResult.data ?? []).filter((item) => item.section_id === section.id) }));
+    }
     return {
       data: {
-        profile: ownerProfile,
+        profile: ownerHasPhase2 ? ownerProfile : { ...ownerProfile, advanced_customization: null },
         experiences: experiences.data ?? [],
         education: education.data ?? [],
         items: items.data ?? [],
+        showcases,
+        customSections,
       } as PortfolioData,
       resume: resume.data,
       profileId: String(ownerProfile.id),
@@ -88,8 +103,9 @@ export async function loadPortfolioAccess(slug: string): Promise<PortfolioAccess
 
   const snapshot = published.snapshot_json as Snapshot;
   if (!snapshot?.profile || !Array.isArray(snapshot.experiences) || !Array.isArray(snapshot.education) || !Array.isArray(snapshot.items)) return null;
+  const hasPhase2 = PHASE_2_SHOWCASES_ENABLED && isShowcasePlan(subscription?.plan, subscription?.status, subscription?.period_ends_at);
   return {
-    data: snapshot,
+    data: hasPhase2 ? snapshot : { ...snapshot, profile: { ...snapshot.profile, advanced_customization: null }, showcases: [], customSections: [] },
     resume: snapshot.resume ?? null,
     profileId: String(published.profile_id),
     isOwner: false,

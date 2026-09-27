@@ -2,6 +2,7 @@ import { APICallError, generateText, jsonSchema, Output } from "ai";
 import type { GatewayProviderOptions } from "@ai-sdk/gateway";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hasGenericCliche, hasProfessionalSummaryShape, writingSimilarity } from "@/lib/ai-writing-quality";
 
 export const maxDuration = 60;
 
@@ -134,10 +135,18 @@ function normalizeOptions(output: WritingOutput, field: Field, source: string, c
     ids.add(option.id);
     const comparable = option.text.toLocaleLowerCase();
     if (option.text.length < 10 || option.text.length > max || comparable === source.toLocaleLowerCase() || textSeen.has(comparable)) throw new Error("unusable_output_text");
+    if (writingSimilarity(option.text, source) > (field === "headline" ? 0.88 : 0.9)) throw new Error("unusable_output_too_similar");
+    if (field === "summary" && !hasProfessionalSummaryShape(option.text)) throw new Error("unusable_output_summary_shape");
+    if (hasGenericCliche(option.text)) throw new Error("unusable_output_cliche");
     textSeen.add(comparable);
     if ((option.text.match(/\d+(?:[.,]\d+)*/g) ?? []).some((number) => !supportedNumbers.has(number))) throw new Error("unsupported_number");
   }
   if (ids.size !== 3) throw new Error("unusable_output_missing_option");
+  for (let first = 0; first < options.length; first += 1) {
+    for (let second = first + 1; second < options.length; second += 1) {
+      if (writingSimilarity(options[first].text, options[second].text) > 0.82) throw new Error("unusable_output_options_too_similar");
+    }
+  }
   return options.sort((a, b) => ["recommended", "concise", "human"].indexOf(a.id) - ["recommended", "concise", "human"].indexOf(b.id));
 }
 
@@ -205,7 +214,10 @@ export async function POST(request: Request) {
   const reserved = await admin.rpc("vxl_ai_reserve", { account_id: userId, request_id: id, input_field: field, input_text: source, input_model: model });
   if (reserved.error) return Response.json({ error: "Could not check your AI allowance. Please retry." }, { status: 503 });
   if (reserved.data.error) return Response.json(reserved.data, { status: 429 });
-  if (reserved.data.status === "complete") return Response.json(reserved.data);
+  if (reserved.data.status === "complete") {
+    const recovered = await admin.from("ai_writing_requests").select("id,field,source_text,result_text,token_usage,status").eq("id", id).eq("profile_id", userId).maybeSingle();
+    return Response.json({ ...(recovered.data ?? reserved.data), options: validSavedOptions(recovered.data?.token_usage?.options) });
+  }
 
   const startedAt = Date.now();
   try {
@@ -219,7 +231,7 @@ export async function POST(request: Request) {
       maxRetries: 2,
       abortSignal: AbortSignal.timeout(45000),
       providerOptions: {
-        gateway: { models: fallbackModels, user: userId, tags: ["feature:ai-writing", `field:${field}`, "version:v2"] } satisfies GatewayProviderOptions,
+        gateway: { models: fallbackModels, user: userId, tags: ["feature:ai-writing", `field:${field}`, "version:v2.1"], disallowPromptTraining: true, sort: "ttft" } satisfies GatewayProviderOptions,
       },
     });
     if (!generated.output || generated.finishReason !== "stop") throw new Error("unusable_output_finish");
@@ -236,13 +248,13 @@ export async function POST(request: Request) {
   } catch (error) {
     const recovery = await admin.from("ai_writing_requests").select("id,field,source_text,result_text,token_usage,status").eq("id", id).eq("profile_id", userId).maybeSingle();
     if (recovery.data?.status === "complete") return Response.json({ ...recovery.data, options: validSavedOptions(recovery.data.token_usage?.options) });
-    await admin.from("ai_writing_requests").update({ status: "failed" }).eq("id", id).eq("profile_id", userId).eq("status", "pending");
     const failure = generationFailure(error);
+    const marked = await admin.rpc("vxl_ai_fail", { account_id: userId, request_id: id, input_failure_category: failure.category });
     console.error("[vxl-ai] generation_failed", { requestId: id, field, latencyMs: Date.now() - startedAt, ...failure });
     if (failure.category === "gateway_authentication") return Response.json({ error: "AI Writing is temporarily unavailable because its secure connection is not configured. No improvement was charged." }, { status: 503 });
     if (failure.category === "gateway_credit") return Response.json({ error: "The AI allowance is temporarily exhausted. No improvement was charged." }, { status: 503 });
     if (failure.category === "rate_limit") return Response.json({ error: "AI Writing is receiving too many requests right now. No improvement was charged; please wait a minute and retry." }, { status: 429 });
     if (failure.category === "quality_guard") return Response.json({ error: "AI could not create three sufficiently grounded options. No improvement was charged—add a little more detail and retry." }, { status: 503 });
-    return Response.json({ error: recovery.error ? "Could not confirm the result. Reload and check saved suggestions before retrying." : "AI Writing could not finish this suggestion. No improvement was charged. Please retry shortly." }, { status: 503 });
+    return Response.json({ error: recovery.error || marked.error ? "Could not confirm the result. Reload and check saved suggestions before retrying." : "AI Writing could not finish this suggestion. No improvement was charged. Please retry shortly." }, { status: 503 });
   }
 }

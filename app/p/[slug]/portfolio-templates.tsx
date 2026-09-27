@@ -1,13 +1,20 @@
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import { ArrowDownToLine, ArrowUpRight, Mail, MapPin } from "lucide-react";
 import { paletteFor, portfolioStyle } from "@/lib/portfolio-style";
+import { normalizeAdvancedCustomization, type AdvancedSectionKey } from "@/lib/phase2-showcases";
+import { isPhase2PortfolioTemplate, normalizePortfolioTheme } from "@/lib/phase2-templates";
 
-type Row = Record<string, string | boolean | number | null>;
+type Row = Record<string, unknown>;
+type ShowcaseRow = { id?: string; source_id?: string; slug?: string; is_enabled?: boolean; [key: string]: unknown };
+type CustomSectionRow = { id?: string; title?: string; description?: string; layout?: string; is_visible?: boolean; items?: Array<Record<string, unknown>>; [key: string]: unknown };
 export type PortfolioData = {
   profile: Row;
   experiences: Row[];
   education: Row[];
   items: Row[];
+  showcases?: ShowcaseRow[];
+  customSections?: CustomSectionRow[];
 };
 
 const value = (input: unknown) => (typeof input === "string" ? input : "");
@@ -32,6 +39,50 @@ const groups = (items: Row[]) => ({
   links: items.filter((item) => item.item_type === "link" && item.url),
   extras: items.filter((item) => ["certification", "language"].includes(value(item.item_type))),
 });
+const portfolioBasePath = (profile: Row) => typeof profile._public_base_path === "string" ? profile._public_base_path : `/p/${value(profile.portfolio_slug)}`;
+const showcaseFor = (data: PortfolioData, project: Row) => (data.showcases ?? []).find((showcase) => showcase.source_id === project.id && showcase.is_enabled);
+const hasAdvancedCustomization = (profile: Row) => Boolean(profile.advanced_customization && typeof profile.advanced_customization === "object" && !Array.isArray(profile.advanced_customization) && Object.keys(profile.advanced_customization as object).length);
+const advancedFor = (profile: Row) => normalizeAdvancedCustomization(profile.advanced_customization);
+const advancedStyle = (profile: Row, fallbackTheme: string) => {
+  const advanced = advancedFor(profile);
+  const order = Object.fromEntries(advanced.sectionOrder.map((key, index) => [`--vxl-order-${key}`, String((index + 1) * 10)]));
+  return { ...portfolioStyle(value(profile.theme) || fallbackTheme, value(profile.accent), Number(profile.effect_intensity ?? 65), value(profile.text_tone)), ...order } as CSSProperties;
+};
+const advancedAttributes = (profile: Row, key: AdvancedSectionKey) => ({
+  "data-vxl-section": key,
+  "data-vxl-treatment": advancedFor(profile).sectionTreatments[key],
+});
+
+function ShowcaseLink({ data, project, className }: { data: PortfolioData; project: Row; className: string }) {
+  const showcase = showcaseFor(data, project);
+  if (!showcase) return null;
+  return <a className={className} href={`${portfolioBasePath(data.profile)}/showcase/${value(showcase.slug)}`}>Explore project <ArrowUpRight className="h-4 w-4" /></a>;
+}
+
+function CustomSections({ data }: { data: PortfolioData }) {
+  const sections = (data.customSections ?? []).filter((section) => section.is_visible !== false && section.title);
+  if (!sections.length) return null;
+  return (
+    <div className="portfolio-custom-sections" {...advancedAttributes(data.profile, "custom")}>
+      {sections.map((section, sectionIndex) => (
+        <section key={String(section.id)} className="portfolio-custom-section">
+          <div className="portfolio-custom-heading"><span>{String(sectionIndex + 1).padStart(2, "0")} / CUSTOM</span><h2>{value(section.title)}</h2>{section.description && <p>{value(section.description)}</p>}</div>
+          <div className={`portfolio-custom-items is-${["cards", "list", "timeline"].includes(String(section.layout)) ? section.layout : "cards"}`}>
+            {(section.items ?? []).map((item) => (
+              <article key={value(item.id)}>
+                {Boolean(item.date_label) && <span>{value(item.date_label)}</span>}
+                <h3>{value(item.title)}</h3>
+                {Boolean(item.subtitle) && <strong>{value(item.subtitle)}</strong>}
+                {Boolean(item.description) && <p>{value(item.description)}</p>}
+                {Boolean(item.url) && <a href={value(item.url)} target="_blank" rel="noreferrer">View evidence <ArrowUpRight className="h-4 w-4" /></a>}
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
 
 function PortfolioActions({ profile, tone = "light" }: { profile: Row; tone?: "light" | "dark" | "gold" }) {
   const slug = value(profile.portfolio_slug);
@@ -46,7 +97,7 @@ function PortfolioActions({ profile, tone = "light" }: { profile: Row; tone?: "l
         </a>
       )}
       {slug && (
-        <a className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-5 text-sm font-semibold transition ${secondary}`} href={`/p/${slug}/resume`}>
+        <a className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-5 text-sm font-semibold transition ${secondary}`} href={`${portfolioBasePath(profile)}/resume`}>
           <ArrowDownToLine className="h-4 w-4" />
           Download résumé
         </a>
@@ -58,7 +109,7 @@ function PortfolioActions({ profile, tone = "light" }: { profile: Row; tone?: "l
 function ProfilePhoto({ profile, className, sizes }: { profile: Row; className: string; sizes: string }) {
   const slug = value(profile.portfolio_slug);
   if (!profile.photo_path || !slug) return null;
-  return <Image src={`/p/${slug}/photo`} alt={`${value(profile.full_name)} portrait`} fill sizes={sizes} className={className} unoptimized />;
+  return <Image src={`${portfolioBasePath(profile)}/photo`} alt={`${value(profile.full_name)} portrait`} fill sizes={sizes} className={className} unoptimized />;
 }
 
 function ContactLine({ profile, mutedClass }: { profile: Row; mutedClass: string }) {
@@ -101,7 +152,7 @@ function EditorialTemplate({ data, showWordmark }: { data: PortfolioData; showWo
   const name = value(profile.full_name);
   const palette = paletteFor("studio", value(profile.accent));
   return (
-    <main className="portfolio-surface min-h-screen overflow-hidden bg-[var(--portfolio-bg)] text-[var(--portfolio-text)] [font-family:'Avenir_Next','Helvetica_Neue',Arial,sans-serif]" style={portfolioStyle(value(profile.theme) || "studio", value(profile.accent), Number(profile.effect_intensity ?? 65), value(profile.text_tone))}>
+    <main className={`portfolio-surface ${hasAdvancedCustomization(profile) ? "portfolio-customizable" : ""} min-h-screen overflow-hidden bg-[var(--portfolio-bg)] text-[var(--portfolio-text)] [font-family:'Avenir_Next','Helvetica_Neue',Arial,sans-serif]`} style={advancedStyle(profile, "studio")} data-vxl-density={advancedFor(profile).density} data-vxl-corners={advancedFor(profile).cornerStyle} data-vxl-headings={advancedFor(profile).headingStyle}>
       <div className="portfolio-atmosphere" />
       <div className="relative z-[1] h-1" style={{ backgroundColor: palette.colors[0] }} />
       <nav className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-7 sm:px-10 lg:px-20">
@@ -146,7 +197,7 @@ function EditorialTemplate({ data, showWordmark }: { data: PortfolioData; showWo
         </div>
       </header>
 
-      <section id="story" className="border-y border-[#dfba86]/15 bg-[#0d1430] px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
+      <section {...advancedAttributes(profile, "story")} id="story" className="border-y border-[#dfba86]/15 bg-[#0d1430] px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
         <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[.65fr_1.35fr]">
           <div>
             <p className="text-xs font-semibold tracking-[.28em] text-[#dfba86]">01 / ORIENTATION</p>
@@ -162,7 +213,7 @@ function EditorialTemplate({ data, showWordmark }: { data: PortfolioData; showWo
       </section>
 
       {skills.length > 0 && (
-        <section className="mx-auto max-w-[1440px] px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
+        <section {...advancedAttributes(profile, "skills")} className="mx-auto max-w-[1440px] px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
           <div className="text-center">
             <p className="text-xs font-semibold tracking-[.28em] text-[#dfba86]">02 / CAPABILITIES</p>
             <h2 className="mt-4 text-5xl font-light [font-family:'Iowan_Old_Style','Baskerville',Georgia,serif]">Areas of specialization</h2>
@@ -180,7 +231,7 @@ function EditorialTemplate({ data, showWordmark }: { data: PortfolioData; showWo
       )}
 
       {experiences.length > 0 && (
-        <section id="experience" className="bg-[#111a3d] px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
+        <section {...advancedAttributes(profile, "experience")} id="experience" className="bg-[#111a3d] px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
           <div className="mx-auto max-w-7xl">
             <p className="text-xs font-semibold tracking-[.28em] text-[#dfba86]">03 / PROFESSIONAL RECORD</p>
             <h2 className="mt-4 text-5xl font-light [font-family:'Iowan_Old_Style','Baskerville',Georgia,serif]">The journey, in chapters</h2>
@@ -215,7 +266,7 @@ function EditorialTemplate({ data, showWordmark }: { data: PortfolioData; showWo
         </section>
       )}
 
-      <section id="work" className="mx-auto max-w-[1440px] px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
+      <section {...advancedAttributes(profile, "projects")} id="work" className="mx-auto max-w-[1440px] px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
         {projects.length > 0 && (
           <>
             <p className="text-xs font-semibold tracking-[.28em] text-[#dfba86]">04 / SELECTED WORK</p>
@@ -230,11 +281,12 @@ function EditorialTemplate({ data, showWordmark }: { data: PortfolioData; showWo
                     <p className="text-xs tracking-[.15em] text-[#dfba86]">{value(project.subtitle) || "PROJECT"}</p>
                     <h3 className="mt-3 text-2xl [font-family:'Iowan_Old_Style','Baskerville',Georgia,serif]">{value(project.title)}</h3>
                     <p className="mt-4 leading-7 text-[#8d96b0]">{value(project.description)}</p>
-                    {project.url && (
+                    {Boolean(project.url) && (
                       <a href={value(project.url)} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-sm text-[#dfba86]">
                         View project <ArrowUpRight className="h-4 w-4" />
                       </a>
                     )}
+                    <ShowcaseLink data={data} project={project} className="mt-5 flex items-center gap-2 text-sm font-semibold text-[#dfba86]" />
                   </div>
                 </article>
               ))}
@@ -253,7 +305,7 @@ function EditorialTemplate({ data, showWordmark }: { data: PortfolioData; showWo
       </section>
 
       {(education.length > 0 || extras.length > 0) && (
-        <section className="border-y border-[#dfba86]/15 bg-[#0d1430] px-6 py-24 sm:px-10 lg:px-20">
+        <section {...advancedAttributes(profile, "education")} className="border-y border-[#dfba86]/15 bg-[#0d1430] px-6 py-24 sm:px-10 lg:px-20">
           <div className="mx-auto max-w-7xl">
             <p className="text-xs font-semibold tracking-[.28em] text-[#dfba86]">05 / FOUNDATIONS</p>
             <div className="mt-10 grid gap-5 md:grid-cols-2">
@@ -276,6 +328,7 @@ function EditorialTemplate({ data, showWordmark }: { data: PortfolioData; showWo
         </section>
       )}
 
+      <CustomSections data={data} />
       <footer className="px-6 py-24 text-center sm:px-10 lg:py-32">
         <p className="text-xs font-semibold tracking-[.28em] text-[#dfba86]">A CONVERSATION STARTS HERE</p>
         <h2 className="mx-auto mt-5 max-w-3xl text-5xl font-light leading-tight sm:text-6xl [font-family:'Iowan_Old_Style','Baskerville',Georgia,serif]">Let’s build what comes next.</h2>
@@ -296,7 +349,7 @@ function PrismTemplate({ data, showWordmark }: { data: PortfolioData; showWordma
   const { skills, projects, achievements, links } = groups(items);
   const name = value(profile.full_name);
   return (
-    <main className="portfolio-surface min-h-screen overflow-hidden bg-[var(--portfolio-bg)] text-[var(--portfolio-text)] [font-family:'Avenir_Next','Helvetica_Neue',Arial,sans-serif]" style={portfolioStyle(value(profile.theme) || "canvas", value(profile.accent), Number(profile.effect_intensity ?? 65), value(profile.text_tone))}>
+    <main className={`portfolio-surface ${hasAdvancedCustomization(profile) ? "portfolio-customizable" : ""} min-h-screen overflow-hidden bg-[var(--portfolio-bg)] text-[var(--portfolio-text)] [font-family:'Avenir_Next','Helvetica_Neue',Arial,sans-serif]`} style={advancedStyle(profile, "canvas")} data-vxl-density={advancedFor(profile).density} data-vxl-corners={advancedFor(profile).cornerStyle} data-vxl-headings={advancedFor(profile).headingStyle}>
       <div className="portfolio-atmosphere" />
       <header className="relative isolate px-6 pb-24 pt-28 text-center sm:px-10 lg:px-20 lg:pb-36 lg:pt-40">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_20%,rgba(124,58,237,.38),transparent_38%),radial-gradient(ellipse_at_18%_80%,rgba(13,148,136,.23),transparent_36%),radial-gradient(ellipse_at_82%_75%,rgba(236,72,153,.2),transparent_35%),linear-gradient(#030305,#0b0b16_50%,#08060e)]" />
@@ -307,7 +360,7 @@ function PrismTemplate({ data, showWordmark }: { data: PortfolioData; showWordma
         <div className="mt-10 flex justify-center">
           <PortfolioActions profile={profile} tone="dark" />
         </div>
-        {profile.photo_path && (
+        {Boolean(profile.photo_path) && (
           <div className="relative mx-auto mt-16 aspect-[16/7] max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 shadow-[0_40px_140px_rgba(124,58,237,.28)]">
             <ProfilePhoto profile={profile} className="object-cover" sizes="(max-width: 1024px) 92vw, 1024px" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#050508] via-transparent to-transparent" />
@@ -328,7 +381,7 @@ function PrismTemplate({ data, showWordmark }: { data: PortfolioData; showWordma
         </div>
       </nav>
 
-      <section id="identity" className="relative border-b border-white/8 px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
+      <section {...advancedAttributes(profile, "story")} id="identity" className="relative border-b border-white/8 px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(13,148,136,.12),transparent_30%)]" />
         <div className="relative mx-auto max-w-7xl">
           <p className="bg-gradient-to-r from-teal-400 via-violet-400 to-pink-400 bg-clip-text text-xs font-bold uppercase tracking-[.25em] text-transparent">01 / Identity</p>
@@ -346,7 +399,7 @@ function PrismTemplate({ data, showWordmark }: { data: PortfolioData; showWordma
       </section>
 
       {skills.length > 0 && (
-        <section className="relative px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
+        <section {...advancedAttributes(profile, "skills")} className="relative px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_15%,rgba(236,72,153,.1),transparent_28%)]" />
           <div className="relative mx-auto max-w-7xl">
             <p className="bg-gradient-to-r from-teal-400 via-violet-400 to-pink-400 bg-clip-text text-xs font-bold uppercase tracking-[.25em] text-transparent">02 / Capability</p>
@@ -369,7 +422,7 @@ function PrismTemplate({ data, showWordmark }: { data: PortfolioData; showWordma
       )}
 
       {experiences.length > 0 && (
-        <section id="trajectory" className="border-y border-white/8 bg-[radial-gradient(circle_at_82%_28%,rgba(236,72,153,.16),transparent_32%),linear-gradient(180deg,#08060e,#0d0710)] px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
+        <section {...advancedAttributes(profile, "experience")} id="trajectory" className="border-y border-white/8 bg-[radial-gradient(circle_at_82%_28%,rgba(236,72,153,.16),transparent_32%),linear-gradient(180deg,#08060e,#0d0710)] px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
           <div className="mx-auto max-w-7xl">
             <p className="bg-gradient-to-r from-teal-400 via-violet-400 to-pink-400 bg-clip-text text-xs font-bold uppercase tracking-[.25em] text-transparent">03 / Trajectory</p>
             <h2 className="mt-4 text-4xl font-bold tracking-[-.035em] sm:text-5xl">Professional chapters</h2>
@@ -402,7 +455,7 @@ function PrismTemplate({ data, showWordmark }: { data: PortfolioData; showWordma
       )}
 
       {projects.length > 0 && (
-        <section id="systems" className="px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
+        <section {...advancedAttributes(profile, "projects")} id="systems" className="px-6 py-24 sm:px-10 lg:px-20 lg:py-32">
           <div className="mx-auto max-w-7xl">
             <p className="bg-gradient-to-r from-teal-400 via-violet-400 to-pink-400 bg-clip-text text-xs font-bold uppercase tracking-[.25em] text-transparent">04 / Systems built</p>
             <h2 className="mt-4 text-4xl font-bold tracking-[-.035em] sm:text-5xl">Ideas turned into working proof</h2>
@@ -413,11 +466,12 @@ function PrismTemplate({ data, showWordmark }: { data: PortfolioData; showWordma
                   <p className="relative text-xs font-bold uppercase tracking-[.18em] text-white/70">{value(project.subtitle) || `Case study 0${index + 1}`}</p>
                   <h3 className="relative mt-20 text-3xl font-bold">{value(project.title)}</h3>
                   <p className="relative mt-5 leading-7 text-white/80">{value(project.description)}</p>
-                  {project.url && (
+                  {Boolean(project.url) && (
                     <a className="relative mt-7 inline-flex items-center gap-2 font-semibold" href={value(project.url)} target="_blank" rel="noreferrer">
                       Explore <ArrowUpRight className="h-4 w-4" />
                     </a>
                   )}
+                  <ShowcaseLink data={data} project={project} className="relative mt-7 flex items-center gap-2 font-semibold" />
                 </article>
               ))}
             </div>
@@ -426,7 +480,7 @@ function PrismTemplate({ data, showWordmark }: { data: PortfolioData; showWordma
       )}
 
       {achievements.length > 0 && (
-        <section className="relative border-y border-white/8 px-6 py-24 text-center sm:px-10 lg:px-20">
+        <section {...advancedAttributes(profile, "projects")} className="relative border-y border-white/8 px-6 py-24 text-center sm:px-10 lg:px-20">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(124,58,237,.24),transparent_55%)]" />
           <div className="relative mx-auto max-w-4xl">
             <span className="bg-gradient-to-r from-teal-400 via-violet-400 to-pink-400 bg-clip-text text-6xl font-black text-transparent">“</span>
@@ -440,7 +494,7 @@ function PrismTemplate({ data, showWordmark }: { data: PortfolioData; showWordma
       )}
 
       {education.length > 0 && (
-        <section className="px-6 py-24 sm:px-10 lg:px-20">
+        <section {...advancedAttributes(profile, "education")} className="px-6 py-24 sm:px-10 lg:px-20">
           <div className="mx-auto max-w-7xl">
             <p className="bg-gradient-to-r from-teal-400 via-violet-400 to-pink-400 bg-clip-text text-xs font-bold uppercase tracking-[.25em] text-transparent">05 / Foundations</p>
             <div className="mt-10 grid gap-4 md:grid-cols-2">
@@ -456,6 +510,7 @@ function PrismTemplate({ data, showWordmark }: { data: PortfolioData; showWordma
         </section>
       )}
 
+      <CustomSections data={data} />
       <footer id="contact" className="relative px-6 py-28 text-center sm:px-10 lg:py-40">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_50%,rgba(13,148,136,.18),transparent_30%),radial-gradient(circle_at_75%_50%,rgba(236,72,153,.18),transparent_30%)]" />
         <div className="relative">
@@ -478,7 +533,7 @@ function ZenTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark
   const isLight = ["mono-brutalist", "mono-paper"].includes(value(profile.theme));
   const line = "border-[color:color-mix(in_srgb,var(--portfolio-text)_18%,transparent)]";
   return (
-    <main className="portfolio-surface min-h-screen bg-[var(--portfolio-bg)] text-[var(--portfolio-text)] [font-family:'Helvetica_Neue',Arial,sans-serif]" style={portfolioStyle(value(profile.theme) || "ledger", value(profile.accent), Number(profile.effect_intensity ?? 65), value(profile.text_tone))}>
+    <main className={`portfolio-surface ${hasAdvancedCustomization(profile) ? "portfolio-customizable" : ""} min-h-screen bg-[var(--portfolio-bg)] text-[var(--portfolio-text)] [font-family:'Helvetica_Neue',Arial,sans-serif]`} style={advancedStyle(profile, "ledger")} data-vxl-density={advancedFor(profile).density} data-vxl-corners={advancedFor(profile).cornerStyle} data-vxl-headings={advancedFor(profile).headingStyle}>
       <div className="portfolio-atmosphere" />
       <nav className={`flex items-center justify-between border-b px-6 py-7 sm:px-10 lg:px-20 ${line}`}>
         <span className="text-sm font-semibold lowercase">{name} · portfolio</span>
@@ -494,7 +549,7 @@ function ZenTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark
             <PortfolioActions profile={profile} tone={isLight ? "light" : "dark"} />
           </div>
         </div>
-        {profile.photo_path && (
+        {Boolean(profile.photo_path) && (
           <div className="relative min-h-[480px] overflow-hidden border-t border-[#1c1c1f] lg:border-l lg:border-t-0">
             <ProfilePhoto profile={profile} className="object-cover grayscale" sizes="(max-width: 1024px) 100vw, 40vw" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
@@ -502,7 +557,7 @@ function ZenTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark
         )}
       </header>
 
-      <section className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
+      <section {...advancedAttributes(profile, "story")} className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
         <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">01 / ORIENTATION</p>
         <div>
           <p className="max-w-4xl text-2xl leading-10">“Good work removes noise until the contribution becomes unmistakable.”</p>
@@ -511,7 +566,7 @@ function ZenTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark
       </section>
 
       {skills.length > 0 && (
-        <section className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
+        <section {...advancedAttributes(profile, "skills")} className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
           <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">02 / CAPABILITY</p>
           <div className={`divide-y border-y ${line}`}>
             {skills.map((skill, index) => (
@@ -525,7 +580,7 @@ function ZenTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark
       )}
 
       {projects.length > 0 && (
-        <section className={`border-b py-24 ${line}`}>
+        <section {...advancedAttributes(profile, "projects")} className={`border-b py-24 ${line}`}>
           <div className="px-6 sm:px-10 lg:px-20">
             <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">03 / SELECTED WORK</p>
             <h2 className="mt-4 text-4xl font-semibold tracking-[-.04em]">Artifacts with a reason to exist</h2>
@@ -537,11 +592,12 @@ function ZenTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark
                   <p className="text-xs text-[var(--portfolio-accent)]">{value(project.subtitle) || `Project ${String(index + 1).padStart(2, "0")}`}</p>
                   <h3 className="mt-3 text-3xl font-semibold">{value(project.title)}</h3>
                   <p className="mt-5 max-w-xl leading-7 text-[var(--portfolio-muted)]">{value(project.description)}</p>
-                  {project.url && (
+                  {Boolean(project.url) && (
                     <a className="mt-6 inline-flex items-center gap-2 text-sm underline underline-offset-4" href={value(project.url)} target="_blank" rel="noreferrer">
                       View project <ArrowUpRight className="h-4 w-4" />
                     </a>
                   )}
+                  <ShowcaseLink data={data} project={project} className="mt-6 flex items-center gap-2 text-sm font-semibold underline underline-offset-4" />
                 </div>
                 <div className="relative h-48 overflow-hidden border border-[#1c1c1f] bg-[linear-gradient(135deg,#0c0c0d,#020202)]">
                   <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(#202024_1px,transparent_1px),linear-gradient(90deg,#202024_1px,transparent_1px)] [background-size:28px_28px]" />
@@ -554,7 +610,7 @@ function ZenTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark
       )}
 
       {experiences.length > 0 && (
-        <section className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
+        <section {...advancedAttributes(profile, "experience")} className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
           <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">04 / CHRONOLOGY</p>
           <div className="space-y-12">
             {experiences.map((row) => (
@@ -579,7 +635,7 @@ function ZenTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark
       )}
 
       {achievements.length > 0 && (
-        <section className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
+        <section {...advancedAttributes(profile, "projects")} className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
           <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">05 / SIGNALS</p>
           <div className="space-y-8">
             {achievements.map((achievement) => (
@@ -592,7 +648,7 @@ function ZenTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark
       )}
 
       {education.length > 0 && (
-        <section className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
+        <section {...advancedAttributes(profile, "education")} className={`grid border-b px-6 py-20 sm:px-10 lg:grid-cols-[240px_1fr] lg:gap-20 lg:px-20 lg:py-28 ${line}`}>
           <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">06 / FOUNDATION</p>
           <div className="grid gap-10 md:grid-cols-2">
             {education.map((row) => (
@@ -606,6 +662,7 @@ function ZenTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark
         </section>
       )}
 
+      <CustomSections data={data} />
       <footer className="px-6 py-28 text-center sm:px-10 lg:py-36">
         <p className="text-xs tracking-[.2em] text-[var(--portfolio-accent)]">07 / CONNECTION</p>
         <h2 className="mt-6 break-words text-4xl font-semibold tracking-[-.04em] sm:text-6xl">{value(profile.email)}</h2>
@@ -619,9 +676,102 @@ function ZenTemplate({ data, showWordmark }: { data: PortfolioData; showWordmark
   );
 }
 
+function Phase2Template({ data, showWordmark, theme }: { data: PortfolioData; showWordmark: boolean; theme: string }) {
+  const { profile, experiences, education, items } = data;
+  const { skills, projects, achievements, links, extras } = groups(items);
+  const name = value(profile.full_name) || "Your name";
+  const variant = theme.replace("p2-", "");
+  const light = variant === "archive" || variant === "kinetic";
+  const labels: Record<string, { edition: string; statement: string; proof: string }> = {
+    signal: { edition: "CAREER OS / ONLINE", statement: "Built to move the signal forward.", proof: "Deployed proof" },
+    orbit: { edition: "THE HUMAN CONSTELLATION", statement: "Work with gravity. Ideas with orbit.", proof: "Objects in orbit" },
+    archive: { edition: "ARCHIVE / INDEX 001", statement: "A working record of ideas, decisions and impact.", proof: "Selected records" },
+    kinetic: { edition: "MAKE WORK / MAKE NOISE", statement: "Big ideas deserve impossible-to-ignore proof.", proof: "Work in motion" },
+  };
+  const copy = labels[variant] ?? labels.signal;
+  return (
+    <main className={`p2-portfolio p2-${variant} portfolio-surface ${hasAdvancedCustomization(profile) ? "portfolio-customizable" : ""}`} style={advancedStyle(profile, theme)} data-vxl-density={advancedFor(profile).density} data-vxl-corners={advancedFor(profile).cornerStyle} data-vxl-headings={advancedFor(profile).headingStyle}>
+      <div className="p2-noise" />
+      <nav className="p2-nav">
+        <a href="#top" className="p2-brand">{variant === "archive" ? "VXL—A" : variant === "kinetic" ? "VXL!" : "VXL°"}</a>
+        <span>{copy.edition}</span>
+        <div><ExternalLinks links={links} className="p2-link" />{Boolean(profile.email) && <a href={`mailto:${value(profile.email)}`}>CONTACT ↗</a>}</div>
+      </nav>
+
+      <header id="top" className="p2-hero">
+        <div className="p2-hero-copy">
+          <p className="p2-kicker">{copy.edition}</p>
+          <h1>{name}</h1>
+          <h2>{value(profile.headline) || copy.statement}</h2>
+          <p className="p2-summary">{value(profile.professional_summary) || copy.statement}</p>
+          <PortfolioActions profile={profile} tone={light ? "light" : "dark"} />
+        </div>
+        <div className="p2-identity-card">
+          <div className="p2-orbit-ring" />
+          {profile.photo_path ? <ProfilePhoto profile={profile} className="object-cover" sizes="(max-width: 900px) 90vw, 40vw" /> : <b>{initials(name)}</b>}
+          <span>AVAILABLE FOR<br />THE NEXT MISSION</span>
+        </div>
+        <div className="p2-hero-index"><span>01</span><span>{String(projects.length).padStart(2, "0")} PROJECTS</span><span>{String(experiences.length).padStart(2, "0")} CHAPTERS</span></div>
+      </header>
+
+      <section {...advancedAttributes(profile, "story")} className="p2-manifesto">
+        <p>01 / POSITION</p>
+        <h2>{copy.statement}</h2>
+        <div><p>{value(profile.professional_summary)}</p><ContactLine profile={profile} mutedClass="p2-muted" /></div>
+      </section>
+
+      {skills.length > 0 && (
+        <section {...advancedAttributes(profile, "skills")} className="p2-capabilities">
+          <header><span>02 / CAPABILITY MAP</span><h2>What I bring to the room.</h2></header>
+          <div>{skills.map((skill, index) => <article key={value(skill.id)}><i>{String(index + 1).padStart(2, "0")}</i><h3>{value(skill.title)}</h3><span /></article>)}</div>
+        </section>
+      )}
+
+      {projects.length > 0 && (
+        <section {...advancedAttributes(profile, "projects")} id="work" className="p2-projects">
+          <header><span>03 / {copy.proof.toUpperCase()}</span><h2>{copy.proof}</h2></header>
+          <div className="p2-project-grid">
+            {projects.map((project, index) => (
+              <article key={value(project.id)}>
+                <div className="p2-project-art"><span>{String(index + 1).padStart(2, "0")}</span><i /></div>
+                <div className="p2-project-copy"><p>{value(project.subtitle) || `CASE FILE ${String(index + 1).padStart(2, "0")}`}</p><h3>{value(project.title)}</h3><div>{value(project.description)}</div>{Boolean(project.url) && <a href={value(project.url)} target="_blank" rel="noreferrer">Open project <ArrowUpRight /></a>}<ShowcaseLink data={data} project={project} className="p2-showcase-link" /></div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {experiences.length > 0 && (
+        <section {...advancedAttributes(profile, "experience")} className="p2-experience">
+          <header><span>04 / TRAJECTORY</span><h2>The record keeps moving.</h2></header>
+          <div>{experiences.map((row, index) => <article key={value(row.id)}><span>{String(index + 1).padStart(2, "0")}<small>{years(row)}</small></span><div><p>{value(row.company)}</p><h3>{value(row.role)}</h3>{Boolean(row.description) && <ul>{lines(row.description).map((line) => <li key={line}>{line}</li>)}</ul>}</div></article>)}</div>
+        </section>
+      )}
+
+      {achievements.length > 0 && <section className="p2-signals" {...advancedAttributes(profile, "projects")}><span>05 / SIGNALS</span>{achievements.map((achievement) => <blockquote key={value(achievement.id)}>“{value(achievement.title)}”</blockquote>)}</section>}
+
+      {(education.length > 0 || extras.length > 0) && (
+        <section {...advancedAttributes(profile, "education")} className="p2-foundations">
+          <header><span>06 / FOUNDATIONS</span><h2>Knowledge, formally and otherwise.</h2></header>
+          <div>{[...education, ...extras].map((row) => <article key={value(row.id)}><span>{value(row.item_type) || years(row) || "EDUCATION"}</span><h3>{value(row.qualification) || value(row.title)}</h3><p>{value(row.institution) || value(row.subtitle)}</p></article>)}</div>
+        </section>
+      )}
+
+      <CustomSections data={data} />
+      <footer className="p2-footer">
+        <span>07 / START SOMETHING</span><h2>Let’s make the next thing impossible to miss.</h2><PortfolioActions profile={profile} tone={light ? "light" : "dark"} />
+        {showWordmark && <p>Made with VXL</p>}
+      </footer>
+    </main>
+  );
+}
+
 export function PortfolioTemplate({ data, showWordmark = true }: { data: PortfolioData; showWordmark?: boolean }) {
-  const theme = value(data.profile.theme);
-  if (["canvas", "mono-chrome", "mono-glass"].includes(theme)) return <PrismTemplate data={data} showWordmark={showWordmark} />;
-  if (["ledger", "mono-brutalist", "mono-editorial", "mono-paper"].includes(theme)) return <ZenTemplate data={data} showWordmark={showWordmark} />;
-  return <EditorialTemplate data={data} showWordmark={showWordmark} />;
+  const savedTheme = value(data.profile.theme);
+  const theme = normalizePortfolioTheme(savedTheme);
+  const safeData = theme === savedTheme ? data : { ...data, profile: { ...data.profile, theme, accent: "champagne", text_tone: "ivory" } };
+  if (isPhase2PortfolioTemplate(theme)) return <Phase2Template data={safeData} showWordmark={showWordmark} theme={theme} />;
+  if (["canvas", "mono-chrome", "mono-glass"].includes(theme)) return <PrismTemplate data={safeData} showWordmark={showWordmark} />;
+  if (["ledger", "mono-brutalist", "mono-editorial", "mono-paper"].includes(theme)) return <ZenTemplate data={safeData} showWordmark={showWordmark} />;
+  return <EditorialTemplate data={safeData} showWordmark={showWordmark} />;
 }

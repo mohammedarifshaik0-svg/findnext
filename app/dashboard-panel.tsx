@@ -3,6 +3,7 @@ import { useState } from "react";
 import { BarChart3, CheckCircle2, Clock3, Copy, ExternalLink, Eye, FileText, LayoutTemplate, PenLine, Share2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanBadge, type WorkspacePlan } from "@/app/plan-badge";
+import { CARE_SUPPORT_ENABLED } from "@/lib/care-support";
 
 const planHighlights: Record<WorkspacePlan, { eyebrow: string; title: string; description: string; features: string[] }> = {
   free: {
@@ -27,11 +28,11 @@ const planHighlights: Record<WorkspacePlan, { eyebrow: string; title: string; de
     eyebrow: "YOUR CURRENT PLAN",
     title: "Premium tools, with a real person beside you.",
     description: "Get the fullest VXL experience, longer insight history and one human-managed update every cycle.",
-    features: ["1 managed update", "365-day analytics", "Priority human help"],
+    features: ["1 managed update", "365-day analytics", CARE_SUPPORT_ENABLED ? "Priority human help" : "Brand-free portfolio"],
   },
 };
 
-export function DashboardPanel({ name, headline, isPublic, completion, slug, plan, planUntil, onOpen, onCopy, onShare }: { name: string; headline: string; isPublic: boolean; completion: number; slug: string; plan: WorkspacePlan; planUntil: string | null; onOpen: (tab: string) => void; onCopy: () => void; onShare: () => void }) {
+export function DashboardPanel({ name, headline, isPublic, completion, analysisScore, slug, plan, planUntil, onOpen, onCopy, onShare }: { name: string; headline: string; isPublic: boolean; completion: number; analysisScore: number | null; slug: string; plan: WorkspacePlan; planUntil: string | null; onOpen: (tab: string) => void; onCopy: () => void; onShare: () => void }) {
   const [greeting] = useGreeting();
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "VX";
   const planCopy = planHighlights[plan];
@@ -53,7 +54,7 @@ export function DashboardPanel({ name, headline, isPublic, completion, slug, pla
       </header>
       <div className="vxl-dashboard-stats">
         <Stat icon={FileText} label="Portfolio" value="1" detail={isPublic ? "Published website" : "Private draft"} />
-        <Stat icon={CheckCircle2} label="Profile strength" value={`${completion}%`} detail={completion === 100 ? "Ready to publish" : "Keep building your story"} />
+        <Stat icon={CheckCircle2} label={analysisScore === null ? "Profile strength" : "Portfolio score"} value={`${analysisScore ?? completion}%`} detail={analysisScore === null ? (completion === 100 ? "Ready to publish" : "Keep building your story") : "Evidence-based content review"} />
         <Stat icon={Clock3} label="Status" value={isPublic ? "Live" : "Draft"} detail={isPublic ? "Visible to visitors" : "Visible only to you"} />
         <Stat icon={BarChart3} label="Insights" value="Ready" detail="Privacy-safe analytics" />
       </div>

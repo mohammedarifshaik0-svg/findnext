@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, BarChart3, BriefcaseBusiness, Camera, Check, ChevronRight, CircleDollarSign, Copy, ExternalLink, Eye, FileText, GraduationCap, HelpCircle, LayoutDashboard, LayoutTemplate, Loader2, Moon, Plus, Rocket, Save, Settings2, Share2, ShieldCheck, Sparkles, Sun, Trash2, Upload, UserRound, Wrench, X } from "lucide-react";
+import { AlertCircle, BarChart3, BriefcaseBusiness, Camera, Check, ChevronRight, CircleDollarSign, Copy, ExternalLink, Eye, FileText, FolderKanban, Gauge, Globe2, GraduationCap, HelpCircle, LayoutDashboard, LayoutTemplate, LifeBuoy, Loader2, Moon, Plus, Rocket, Save, Settings2, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Sun, Trash2, Upload, UserRound, Wrench, X } from "lucide-react";
 import type { ParsedResume } from "@/lib/resume-parser";
 import { PlansPanel } from "@/app/plans-panel";
 import { PortfolioMiniPreview } from "@/app/portfolio-mini-preview";
@@ -21,8 +21,17 @@ import { VxlLogo } from "@/app/vxl-logo";
 import { AiWriting } from "@/app/ai-writing";
 import { PlanBadge, type WorkspacePlan } from "@/app/plan-badge";
 import { defaultPaletteForTheme, defaultTextFinishForTheme, palettesForTheme, portfolioStyle, textFinishesForTheme } from "@/lib/portfolio-style";
-import { PLAN_LIMITS } from "@/lib/plans";
+import { hasBrandFreePortfolio, PLAN_LIMITS } from "@/lib/plans";
 import { trackEvent, trackOncePerSession } from "@/lib/analytics";
+import { ShowcaseBuilder } from "@/app/showcase-builder";
+import { CustomSectionsBuilder } from "@/app/custom-sections-builder";
+import { AdvancedCustomizationBuilder } from "@/app/advanced-customization-builder";
+import { CustomDomainPanel } from "@/app/custom-domain-panel";
+import { CareSupportPanel } from "@/app/care-support-panel";
+import { PortfolioAnalysisPanel } from "@/app/portfolio-analysis-panel";
+import { customSectionLimit, defaultAdvancedCustomization, normalizeAdvancedCustomization, type AdvancedCustomization, type CustomSection, type PortfolioShowcase } from "@/lib/phase2-showcases";
+import { analyzePortfolio } from "@/lib/portfolio-analysis";
+import { isPhase2PortfolioTemplate, normalizePortfolioTheme, portfolioTemplates } from "@/lib/phase2-templates";
 
 type Experience = {
   id: string;
@@ -77,6 +86,9 @@ type State = {
   experiences: Experience[];
   education: Education[];
   items: Item[];
+  showcases: PortfolioShowcase[];
+  customSections: CustomSection[];
+  advancedCustomization: AdvancedCustomization;
 };
 type Subscription = {
   plan: "live" | "flex" | "care";
@@ -132,6 +144,9 @@ const defaultState = (account: { name: string; email: string }): State => ({
   experiences: [],
   education: [],
   items: [],
+  showcases: [],
+  customSections: [],
+  advancedCustomization: defaultAdvancedCustomization,
 });
 const mapRow = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key.replace(/_([a-z])/g, (_, c) => c.toUpperCase()), value]));
 const mergeParsedResume = (current: State, parsed: ParsedResume): State => ({
@@ -147,6 +162,13 @@ const mergeParsedResume = (current: State, parsed: ParsedResume): State => ({
   education: parsed.education.length ? parsed.education : current.education,
   items: parsed.items.length ? parsed.items : current.items,
 });
+const withoutPhase2Content = (state: State) => {
+  const payload: Partial<State> = { ...state };
+  delete payload.showcases;
+  delete payload.customSections;
+  delete payload.advancedCustomization;
+  return payload;
+};
 
 async function readApiResponse(response: Response): Promise<Record<string, unknown>> {
   const contentType = response.headers.get("content-type") ?? "";
@@ -168,64 +190,7 @@ function Field({ label, value, onChange, placeholder, type = "text" }: { label: 
   );
 }
 
-const templates = [
-  {
-    id: "studio",
-    name: "Editorial",
-    description: "Deep navy, champagne details and an elegant career narrative.",
-    mood: "Refined · Story-led",
-    swatch: "from-[#090e22] via-[#1a234c] to-[#dfba86]",
-  },
-  {
-    id: "canvas",
-    name: "Prism",
-    description: "Cinematic gradients, luminous depth and high-energy project stories.",
-    mood: "Bold · Expressive",
-    swatch: "from-[#050508] via-violet-700 to-pink-500",
-  },
-  {
-    id: "ledger",
-    name: "Zen",
-    description: "Pure black, disciplined typography and quietly confident structure.",
-    mood: "Minimal · Precise",
-    swatch: "from-black via-[#171719] to-[#829579]",
-  },
-  {
-    id: "mono-brutalist",
-    name: "Mono Brutalist",
-    description: "High-contrast type, hard edges and unapologetic technical energy.",
-    mood: "Direct · High-impact",
-    swatch: "from-white via-zinc-100 to-black",
-  },
-  {
-    id: "mono-chrome",
-    name: "Mono Chrome",
-    description: "Polished silver gradients and cinematic system-level depth.",
-    mood: "Premium · Technical",
-    swatch: "from-[#f5f5f7] via-[#6b6b70] to-[#09090b]",
-  },
-  {
-    id: "mono-editorial",
-    name: "Mono Editorial",
-    description: "Elegant serif hierarchy with a rigorous monochrome grid.",
-    mood: "Editorial · Structured",
-    swatch: "from-[#111] via-[#1c1c1c] to-[#777]",
-  },
-  {
-    id: "mono-glass",
-    name: "Mono Glass",
-    description: "Layered translucent surfaces with cool, confident elevation.",
-    mood: "Soft · Dimensional",
-    swatch: "from-[#1f2937] via-[#4b5563] to-[#9ca3af]",
-  },
-  {
-    id: "mono-paper",
-    name: "Mono Paper",
-    description: "Warm white space, restrained shadows and crafted editorial rhythm.",
-    mood: "Quiet · Tactile",
-    swatch: "from-[#fffdfa] via-[#e7e5e4] to-[#a8a29e]",
-  },
-] as const;
+const templates = portfolioTemplates;
 
 export function ProfileWorkspace({ account }: { account: { id: string; name: string; email: string } }) {
   const [now] = useState(() => Date.now());
@@ -242,6 +207,8 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
     parse_status: string;
   } | null>(null);
   const [subscription, setSubscription] = useState<Subscription>(null);
+  const [phase2, setPhase2] = useState({ showcasesEnabled: false, showcaseAccess: false, customDomainsEnabled: false, customDomainAccess: false, prioritySupportEnabled: false, prioritySupportAccess: false, analysisEnabled: false });
+  const [showcaseUploadingId, setShowcaseUploadingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const fileRef = useRef<HTMLInputElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
@@ -253,6 +220,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
     if (typeof window === "undefined") return "light";
     return window.localStorage.getItem("vxl_ui_theme") === "dark" ? "dark" : "light";
   });
+  const brandFreePortfolio = hasBrandFreePortfolio(subscription?.plan, subscription?.status, subscription?.period_ends_at, now);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -267,11 +235,15 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
         }
         if (result.profile) {
           const profile = mapRow(result.profile);
+          const safeTheme = normalizePortfolioTheme(String(profile.theme || "studio"));
+          const didFallbackTheme = safeTheme !== profile.theme;
           const mappedItems = (result.items ?? []).map(mapRow) as unknown as Item[];
           savedLinksRef.current = new Set(mappedItems.filter((item) => item.url.trim()).map((item) => `${item.id}:${item.url.trim()}`));
           setData({
             ...defaultState(account),
             ...profile,
+            theme: safeTheme,
+            ...(didFallbackTheme ? { accent: defaultPaletteForTheme[safeTheme], textTone: defaultTextFinishForTheme[safeTheme] } : {}),
             isPublic: Boolean(profile.isPublic),
             consentProfileStorage: Boolean(profile.consentProfileStorage),
             consentTalentDiscovery: Boolean(profile.consentTalentDiscovery),
@@ -281,10 +253,14 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
             })) as unknown as Experience[],
             education: (result.education ?? []).map(mapRow) as unknown as Education[],
             items: mappedItems,
+            showcases: (result.showcases ?? []).map(mapRow) as unknown as PortfolioShowcase[],
+            customSections: (result.customSections ?? []).map((section: Record<string, unknown>) => ({ ...mapRow(section), items: (Array.isArray(section.items) ? section.items : []).map(mapRow) })) as unknown as CustomSection[],
+            advancedCustomization: normalizeAdvancedCustomization(profile.advancedCustomization),
           });
           setSavedAt(String(profile.updatedAt ?? ""));
         }
         setSubscription(result.subscription ?? null);
+        setPhase2(result.phase2 ?? { showcasesEnabled: false, showcaseAccess: false, customDomainsEnabled: false, customDomainAccess: false, prioritySupportEnabled: false, prioritySupportAccess: false, analysisEnabled: false });
         setPublishedUpdates(typeof result.publishedUpdates === "number" ? result.publishedUpdates : null);
         if (result.resumes?.[0]) {
           setResume(result.resumes[0]);
@@ -312,6 +288,8 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
       templates: 0,
       publish: 0,
       extras: 250,
+      showcases: 310,
+      sections: 360,
       experience: 430,
       education: 650,
     };
@@ -343,6 +321,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
     [data],
   );
   const completion = Math.round((completionChecks.filter((item) => item.done).length / completionChecks.length) * 100);
+  const portfolioAnalysis = useMemo(() => analyzePortfolio(data), [data]);
   const hasActiveSubscription = Boolean(subscription?.status === "active" && (!subscription.period_ends_at || new Date(subscription.period_ends_at).getTime() > now));
   const workspacePlan: WorkspacePlan = hasActiveSubscription && subscription ? subscription.plan : "free";
   const update = <K extends keyof State>(key: K, value: State[K]) => setData((current) => ({ ...current, [key]: value }));
@@ -355,7 +334,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
       const response = await fetch("/api/profile", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(phase2.showcaseAccess ? payload : withoutPhase2Content(payload)),
       });
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(String(result.error || "Could not save changes."));
@@ -463,6 +442,52 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
       setNotice(error instanceof Error ? error.message : "Could not remove the photo.");
     } finally {
       setSaving(false);
+    }
+  };
+  const uploadShowcaseAsset = async (showcase: PortfolioShowcase, file: File) => {
+    setShowcaseUploadingId(showcase.id);
+    setNoticeTone("info");
+    setNotice("Saving the Showcase and uploading its file…");
+    const preparedShowcases = data.showcases.some((row) => row.sourceId === showcase.sourceId)
+      ? data.showcases.map((row) => row.sourceId === showcase.sourceId ? showcase : row)
+      : [...data.showcases, showcase];
+    const prepared = { ...data, showcases: preparedShowcases };
+    setData(prepared);
+    try {
+      if (!await save(prepared, "Showcase saved. Uploading the file…")) return;
+      const form = new FormData();
+      form.append("showcaseId", showcase.id);
+      form.append("file", file);
+      const response = await fetch("/api/showcases/assets", { method: "POST", body: form });
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error || "Could not upload the Showcase file."));
+      const next = { ...prepared, showcases: prepared.showcases.map((row) => row.id === showcase.id ? { ...row, media: [...row.media, result.media as PortfolioShowcase["media"][number]] } : row) };
+      setData(next);
+      await save(next, "File uploaded securely and attached to this Showcase.");
+    } catch (error) {
+      setNoticeTone("error");
+      setNotice(error instanceof Error ? error.message : "Could not upload the Showcase file.");
+    } finally {
+      setShowcaseUploadingId(null);
+    }
+  };
+  const removeShowcaseAsset = async (showcase: PortfolioShowcase, media: PortfolioShowcase["media"][number]) => {
+    if (!media.assetId) return;
+    setShowcaseUploadingId(showcase.id);
+    setNoticeTone("info");
+    setNotice("Removing the file from this draft…");
+    try {
+      const response = await fetch("/api/showcases/assets", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ assetId: media.assetId }) });
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error || "Could not remove the Showcase file."));
+      const next = { ...data, showcases: data.showcases.map((row) => row.id === showcase.id ? { ...row, media: row.media.filter((item) => item.id !== media.id) } : row) };
+      setData(next);
+      await save(next, "File removed from the draft. Published versions remain intact until you publish again.");
+    } catch (error) {
+      setNoticeTone("error");
+      setNotice(error instanceof Error ? error.message : "Could not remove the Showcase file.");
+    } finally {
+      setShowcaseUploadingId(null);
     }
   };
   const publish = async () => {
@@ -592,7 +617,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
     ]);
   const openTab = (tab: string) => {
     setActiveTab(tab);
-    if (["profile", "experience", "education", "extras", "templates"].includes(tab)) trackOncePerSession("builder_started", "builder_started", { source: "workspace" });
+    if (["profile", "experience", "education", "extras", "showcases", "sections", "customize", "templates"].includes(tab)) trackOncePerSession("builder_started", "builder_started", { source: "workspace" });
     if (tab === "analytics") trackOncePerSession("analytics_viewed", "analytics_viewed", { source: "workspace" });
     window.requestAnimationFrame(() => window.requestAnimationFrame(() =>
       (document.getElementById(`vxl-section-${tab}`) ?? contentRef.current)?.scrollIntoView({
@@ -606,9 +631,12 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
     { id: "experience", label: "Experience", icon: BriefcaseBusiness },
     { id: "education", label: "Education", icon: GraduationCap },
     { id: "extras", label: "Skills & work", icon: Wrench },
+    ...(phase2.showcasesEnabled ? [{ id: "showcases", label: "Showcases", icon: FolderKanban }] : []),
+    ...(phase2.showcasesEnabled ? [{ id: "sections", label: "Custom sections", icon: LayoutTemplate }] : []),
+    ...(phase2.showcasesEnabled ? [{ id: "customize", label: "Customize", icon: SlidersHorizontal }] : []),
     { id: "publish", label: "Publish", icon: Rocket },
   ];
-  const previewVisible = ["profile", "experience", "education", "extras", "templates", "publish"].includes(activeTab);
+  const previewVisible = ["profile", "experience", "education", "extras", "showcases", "sections", "customize", "templates", "publish"].includes(activeTab);
   const livePublishLimit = subscription?.plan === "live" ? PLAN_LIMITS.live.published_updates : null;
   const publishRemaining = livePublishLimit === null || publishedUpdates === null ? null : Math.max(0, livePublishLimit - publishedUpdates);
   const publicUrl = data.portfolioSlug ? `https://www.thevxl.com/p/${data.portfolioSlug}` : "";
@@ -722,7 +750,10 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
               { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
               { id: "profile", icon: UserRound, label: "Portfolio editor" },
               { id: "templates", icon: LayoutTemplate, label: "Templates" },
+              ...(phase2.analysisEnabled ? [{ id: "analysis", icon: Gauge, label: "Portfolio analysis" }] : []),
               { id: "analytics", icon: BarChart3, label: "Analytics" },
+              ...(phase2.customDomainsEnabled ? [{ id: "domains", icon: Globe2, label: "Custom domain" }] : []),
+              ...(phase2.prioritySupportEnabled ? [{ id: "care-support", icon: LifeBuoy, label: "Care support" }] : []),
               { id: "plans", icon: CircleDollarSign, label: "Plans" },
               { id: "settings", icon: Settings2, label: "Settings" },
             ].map(({ id, icon: Icon, label }) => (
@@ -743,7 +774,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
           </div>
         </aside>
         <section ref={contentRef} className={`min-w-0 space-y-5 vxl-view-${activeTab}`}>
-          {["profile", "experience", "education", "extras", "publish"].includes(activeTab) && (
+          {["profile", "experience", "education", "extras", "showcases", "sections", "customize", "publish"].includes(activeTab) && (
             <nav className="vxl-editor-rail" aria-label="Portfolio sections">
               {editorTabs.map(({ id, label, icon: Icon }) => (
                 <button key={id} className={activeTab === id ? "active" : ""} onClick={() => openTab(id)}>
@@ -799,14 +830,20 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
               <TabsTrigger value="experience">Experience</TabsTrigger>
               <TabsTrigger value="education">Education</TabsTrigger>
               <TabsTrigger value="extras">More</TabsTrigger>
+              {phase2.showcasesEnabled && <TabsTrigger value="showcases">Showcases</TabsTrigger>}
+              {phase2.showcasesEnabled && <TabsTrigger value="sections">Custom sections</TabsTrigger>}
+              {phase2.showcasesEnabled && <TabsTrigger value="customize">Customize</TabsTrigger>}
               <TabsTrigger value="templates">Templates</TabsTrigger>
+              {phase2.analysisEnabled && <TabsTrigger value="analysis">Portfolio analysis</TabsTrigger>}
               <TabsTrigger value="publish">Publish</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              {phase2.customDomainsEnabled && <TabsTrigger value="domains">Custom domain</TabsTrigger>}
+              {phase2.prioritySupportEnabled && <TabsTrigger value="care-support">Care support</TabsTrigger>}
               <TabsTrigger value="plans">Plans</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
             <TabsContent id="vxl-section-dashboard" value="dashboard">
-              <DashboardPanel name={data.fullName || account.name} headline={data.headline} isPublic={data.isPublic} completion={completion} slug={data.portfolioSlug} plan={workspacePlan} planUntil={hasActiveSubscription ? subscription?.period_ends_at ?? null : null} onOpen={openTab} onCopy={copyPortfolioLink} onShare={sharePortfolio} />
+              <DashboardPanel name={data.fullName || account.name} headline={data.headline} isPublic={data.isPublic} completion={completion} analysisScore={phase2.analysisEnabled ? portfolioAnalysis.score : null} slug={data.portfolioSlug} plan={workspacePlan} planUntil={hasActiveSubscription ? subscription?.period_ends_at ?? null : null} onOpen={openTab} onCopy={copyPortfolioLink} onShare={sharePortfolio} />
             </TabsContent>
             <TabsContent id="vxl-section-profile" value="profile">
               <Section title="Personal profile" description="The essentials recruiters see first.">
@@ -1145,6 +1182,50 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
                 </div>
               </Section>
             </TabsContent>
+            {phase2.showcasesEnabled && (
+              <TabsContent id="vxl-section-showcases" value="showcases">
+                <Section title="Portfolio Showcases" description="Turn selected projects into proof-led case studies with context, outcomes, screenshots and supporting links.">
+                  {phase2.showcaseAccess ? (
+                    <ShowcaseBuilder
+                      projects={data.items.filter((item) => item.itemType === "project")}
+                      showcases={data.showcases}
+                      uploadingId={showcaseUploadingId}
+                      onChange={(showcases) => update("showcases", showcases)}
+                      onUpload={uploadShowcaseAsset}
+                      onRemoveAsset={removeShowcaseAsset}
+                    />
+                  ) : (
+                    <div className="vxl-showcase-locked">
+                      <FolderKanban />
+                      <div><strong>Portfolio Showcases are available with Flex and Care</strong><p>Your current portfolio remains unchanged. Upgrade when you want to publish deeper project proof and case studies.</p></div>
+                      <Button type="button" onClick={() => openTab("plans")}>View plans</Button>
+                    </div>
+                  )}
+                </Section>
+              </TabsContent>
+            )}
+            {phase2.showcasesEnabled && (
+              <TabsContent id="vxl-section-sections" value="sections">
+                <Section title="Custom Sections" description="Add the parts of your story that do not fit a standard résumé structure, then choose how each section appears.">
+                  {phase2.showcaseAccess ? (
+                    <CustomSectionsBuilder sections={data.customSections} limit={customSectionLimit(subscription?.plan)} onChange={(customSections) => update("customSections", customSections)} />
+                  ) : (
+                    <div className="vxl-showcase-locked"><LayoutTemplate /><div><strong>Custom Sections are available with Flex and Care</strong><p>Flex includes five sections. Care includes unlimited sections for a fully tailored professional story.</p></div><Button type="button" onClick={() => openTab("plans")}>View plans</Button></div>
+                  )}
+                </Section>
+              </TabsContent>
+            )}
+            {phase2.showcasesEnabled && (
+              <TabsContent id="vxl-section-customize" value="customize">
+                <Section title="Advanced Customization" description="Shape the hierarchy, rhythm and visual character of your portfolio while keeping every template coherent.">
+                  {phase2.showcaseAccess ? (
+                    <AdvancedCustomizationBuilder value={data.advancedCustomization} onChange={(advancedCustomization) => update("advancedCustomization", advancedCustomization)} />
+                  ) : (
+                    <div className="vxl-showcase-locked"><SlidersHorizontal /><div><strong>Advanced Customization is available with Flex and Care</strong><p>Control section order, spacing, heading style, corners and project presentation without affecting your current live portfolio.</p></div><Button type="button" onClick={() => openTab("plans")}>View plans</Button></div>
+                  )}
+                </Section>
+              </TabsContent>
+            )}
             <TabsContent id="vxl-section-templates" value="templates">
               <Section title="Choose your portfolio world" description="Each design tells the same career differently. All templates are included and adapt with or without a portrait.">
                 <div className="vxl-context-note">
@@ -1157,10 +1238,10 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
                 <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {templates.map((template) => (
                     <button key={template.id} onClick={() => chooseTemplate(template.id)} disabled={saving} className={`group overflow-hidden rounded-2xl border-2 text-left transition duration-300 hover:-translate-y-1 ${data.theme === template.id ? "border-indigo-600 shadow-[0_16px_40px_rgba(79,70,229,.18)]" : "border-slate-200 hover:border-slate-300"}`}>
-                      <div className={`relative h-44 overflow-hidden bg-gradient-to-br ${template.swatch} p-4`}>
+                      <div className={`relative h-44 overflow-hidden bg-gradient-to-br ${template.swatch} p-4 ${isPhase2PortfolioTemplate(template.id) ? "vxl-phase2-template-thumb" : ""}`} data-template={template.id}>
                         <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(255,255,255,.3)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.3)_1px,transparent_1px)] [background-size:24px_24px]" />
                         <div className="relative h-full border border-white/20 bg-black/25 p-4 text-white backdrop-blur-sm">
-                          <p className="text-[9px] font-semibold uppercase tracking-[.2em] opacity-70">Professional story</p>
+                          <p className="text-[9px] font-semibold uppercase tracking-[.2em] opacity-70">{isPhase2PortfolioTemplate(template.id) ? "Next-gen portfolio" : "Professional story"}</p>
                           <div className={`mt-4 h-3 rounded bg-white/90 ${template.id === "canvas" ? "w-3/4" : template.id === "ledger" ? "w-2/3" : "w-1/2"}`} />
                           <div className="mt-2 h-1.5 w-1/3 rounded bg-white/40" />
                           <div className="mt-8 grid grid-cols-[.45fr_1fr] gap-3">
@@ -1171,6 +1252,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
                               <div className="h-1.5 w-2/3 rounded bg-white/25" />
                             </div>
                           </div>
+                          {isPhase2PortfolioTemplate(template.id) && <span className="vxl-template-new">NEW</span>}
                         </div>
                       </div>
                       <div className="bg-white p-4">
@@ -1262,7 +1344,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
                 <div className="vxl-template-publish mt-6">
                   <div>
                     <strong>Happy with this direction?</strong>
-                    <p>{subscription?.status === "active" && (subscription.plan === "flex" || subscription.plan === "care") ? "Flex and Care publish without the VXL wordmark." : "Free and Live portfolios include a small “Made with VXL” wordmark at the bottom."}</p>
+                    <p>{brandFreePortfolio ? "Your active plan publishes without VXL branding." : "Free, expired and Live portfolios include a small “Made with VXL” wordmark at the bottom."}</p>
                   </div>
                   <div>
                     <Button className="vxl-studio-primary" onClick={publish} disabled={saving}>
@@ -1279,7 +1361,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
             </TabsContent>
             <TabsContent id="vxl-section-publish" value="publish">
               <Section title="Review and publish" description="Save freely in your private draft, then choose when those changes replace the public version.">
-                <PublishStatus subscription={subscription} trialEndsAt={data.trialEndsAt} isPublic={data.isPublic} theme={data.theme} onPlans={() => openTab("plans")} />
+                <PublishStatus subscription={subscription} active={hasActiveSubscription} brandFree={brandFreePortfolio} trialEndsAt={data.trialEndsAt} isPublic={data.isPublic} theme={data.theme} onPlans={() => openTab("plans")} />
                 <Field label="Portfolio address" value={data.portfolioSlug} onChange={(v) => update("portfolioSlug", v.toLowerCase().replace(/[^a-z0-9-]/g, ""))} />
                 <p className="mt-2 text-sm text-slate-500">thevxl.com/p/{data.portfolioSlug || "your-name"}</p>
                 <div className="vxl-context-note mt-4">
@@ -1356,8 +1438,23 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
             <TabsContent id="vxl-section-analytics" value="analytics">
               <AnalyticsPanel onUpgrade={() => openTab("plans")} />
             </TabsContent>
+            {phase2.analysisEnabled && (
+              <TabsContent id="vxl-section-analysis" value="analysis">
+                <PortfolioAnalysisPanel analysis={portfolioAnalysis} onOpen={openTab} />
+              </TabsContent>
+            )}
+            {phase2.customDomainsEnabled && (
+              <TabsContent id="vxl-section-domains" value="domains">
+                <CustomDomainPanel onUpgrade={() => openTab("plans")} />
+              </TabsContent>
+            )}
+            {phase2.prioritySupportEnabled && (
+              <TabsContent id="vxl-section-care-support" value="care-support">
+                <CareSupportPanel access={phase2.prioritySupportAccess} onUpgrade={() => openTab("plans")} />
+              </TabsContent>
+            )}
             <TabsContent id="vxl-section-settings" value="settings">
-              <SettingsPanel email={account.email} onRestored={() => window.location.reload()} />
+              <SettingsPanel email={account.email} onRestored={() => window.location.reload()} onUpgrade={() => openTab("plans")} />
             </TabsContent>
           </Tabs>
         </section>
@@ -1377,7 +1474,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
                 <Badge variant="outline">{templates.find((template) => template.id === data.theme)?.name ?? "Studio"}</Badge>
               </div>
               <div ref={previewViewportRef} className="vxl-preview-viewport" tabIndex={0} aria-label="Scrollable live portfolio preview">
-                <PortfolioMiniPreview data={data} showWordmark={!(subscription?.status === "active" && (subscription.plan === "flex" || subscription.plan === "care"))} />
+                <PortfolioMiniPreview data={data} showWordmark={!brandFreePortfolio} />
               </div>
             </div>
           </aside>
@@ -1449,14 +1546,15 @@ function InfoTip({ label }: { label: string }) {
   );
 }
 
-function PublishStatus({ subscription, trialEndsAt, isPublic, theme, onPlans }: { subscription: Subscription; trialEndsAt: string | null; isPublic: boolean; theme: string; onPlans: () => void }) {
-  const paid = subscription?.status === "active";
-  const end = paid ? subscription.period_ends_at : trialEndsAt;
+function PublishStatus({ subscription, active, brandFree, trialEndsAt, isPublic, theme, onPlans }: { subscription: Subscription; active: boolean; brandFree: boolean; trialEndsAt: string | null; isPublic: boolean; theme: string; onPlans: () => void }) {
+  const paidPlan = active ? subscription : null;
+  const paid = Boolean(paidPlan);
+  const end = paidPlan?.period_ends_at ?? trialEndsAt;
   const templateName = templates.find((template) => template.id === theme)?.name ?? "Editorial";
   return (
     <div className="vxl-publish-status">
       <div>
-        <span>{paid ? `${subscription.plan.toUpperCase()} PLAN` : "FREE VERSION"}</span>
+        <span>{paidPlan ? `${paidPlan.plan.toUpperCase()} PLAN` : "FREE VERSION"}</span>
         <InfoTip label="Your plan controls how long the published version remains live. Drafts always stay saved privately." />
         <h3>{paid ? "Publish with active plan access" : trialEndsAt ? "Publish within your 7-day live period" : "Publishing starts your 7-day live period"}</h3>
         <p>{paid ? `Your portfolio can remain live${end ? ` through ${new Date(end).toLocaleDateString()}` : " while this plan is active"}.` : end ? `Your free portfolio is live until ${new Date(end).toLocaleDateString()}. Upgrade before then to keep it online.` : "Day 1 begins only after you confirm publish. After day 7, upgrade to keep the portfolio online."}</p>
@@ -1466,8 +1564,8 @@ function PublishStatus({ subscription, trialEndsAt, isPublic, theme, onPlans }: 
         <strong>{templateName} · saved draft</strong>
         <span>{isPublic ? "Replaces the current live version" : "Creates your first live version"}</span>
         <small className="mt-3">BRANDING</small>
-        <strong>{paid && (subscription.plan === "flex" || subscription.plan === "care") ? "No VXL wordmark" : "“Made with VXL” at the bottom"}</strong>
-        <span>{paid && (subscription.plan === "flex" || subscription.plan === "care") ? "Included with Flex and Care" : "Upgrade to Flex or Care to remove it"}</span>
+        <strong>{brandFree ? "No VXL branding" : "“Made with VXL” at the bottom"}</strong>
+        <span>{brandFree ? "Included with your active Flex or Care plan" : "Upgrade to Flex or Care to remove it"}</span>
       </div>
       {!paid && (
         <Button variant="outline" onClick={onPlans}>

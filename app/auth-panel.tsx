@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { VxlLogo, VxlPortalMark } from "@/app/vxl-logo";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,11 @@ import {
 import { PLAN_PRICES } from "@/lib/plans";
 import { CookiePreferencesButton } from "@/app/vxl-analytics";
 import { planItem, queueAuthEvent, trackEvent, trackRecommendedEvent } from "@/lib/analytics";
+import { CARE_SUPPORT_ENABLED } from "@/lib/care-support";
+import { CUSTOM_DOMAINS_ENABLED } from "@/lib/custom-domains";
+import { PLAN_GUIDE_ENABLED } from "@/lib/plan-guide";
+
+const PlanGuide = dynamic(() => import("@/app/plan-guide").then((module) => module.PlanGuide));
 
 function GoogleMark() {
   return <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.92h5.38a4.6 4.6 0 0 1-2 3.02v2.55h3.24c1.9-1.75 2.98-4.33 2.98-7.42Z"/><path fill="#34A853" d="M12 22c2.7 0 4.98-.9 6.64-2.35l-3.25-2.55c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.03v2.63A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.93A6 6 0 0 1 6.08 12c0-.67.11-1.32.31-1.93V7.44H3.03A10 10 0 0 0 2 12c0 1.61.38 3.14 1.03 4.56l3.36-2.63Z"/><path fill="#EA4335" d="M12 5.94c1.47 0 2.79.5 3.83 1.5l2.88-2.88A9.65 9.65 0 0 0 12 2a10 10 0 0 0-8.97 5.44l3.36 2.63C7.18 7.7 9.39 5.94 12 5.94Z"/></svg>;
@@ -47,8 +53,8 @@ const plans: Array<{
   features: Array<{ label: string; comingSoon?: boolean }>;
 }> = [
   { id: "live" as const, name: "Live", note: "For a finished story that changes occasionally.", features: [{label:"1 portfolio live"},{label:"2 published changes"},{label:"3 AI writing improvements"},{label:"Lifetime portfolio view total"},{label:"Made with VXL wordmark"}] },
-  { id: "flex" as const, name: "Flex", note: "For active careers that keep moving.", featured: true, features: [{label:"Unlimited publishing"},{label:"30 AI writing improvements"},{label:"90-day trends, sources & devices"},{label:"No VXL wordmark"},{label:"Custom domain",comingSoon:true}] },
-  { id: "care" as const, name: "Care", note: "For a premium result with a human beside you.", features: [{label:"Everything currently in Flex"},{label:"60 AI writing improvements"},{label:"365-day analytics history"},{label:"No VXL wordmark"},{label:"1 managed update"},{label:"Guided custom domain",comingSoon:true}] },
+  { id: "flex" as const, name: "Flex", note: "For active careers that keep moving.", featured: true, features: [{label:"Unlimited publishing"},{label:"30 AI writing improvements"},{label:"90-day trends, sources & devices"},{label:"No VXL branding"},{label:"Custom domain",comingSoon:!CUSTOM_DOMAINS_ENABLED}] },
+  { id: "care" as const, name: "Care", note: "For a premium result with a human beside you.", features: [{label:"Everything currently in Flex"},{label:"60 AI writing improvements"},{label:"365-day analytics history"},{label:"No VXL branding"},{label:"1 managed update"},{label:"Priority support",comingSoon:!CARE_SUPPORT_ENABLED},{label:"Guided custom domain",comingSoon:!CUSTOM_DOMAINS_ENABLED}] },
 ];
 
 export function AuthPanel() {
@@ -168,6 +174,7 @@ export function AuthPanel() {
       <div className="vxl-section-heading"><span>SIMPLE, TRANSPARENT PLANS</span><h2>Start light. Grow when you need.</h2><p>One-time payment for 28 days of access. No automatic renewal. Your seven-day trial starts only when you publish.</p></div>
       <div className="vxl-pricing-trust"><span><ShieldCheck/>7 free days start on first publish</span><span><Check/>No card required to build</span><span><Check/>Draft stays saved after expiry</span></div>
       <div className="vxl-pricing-grid">{plans.map(plan=><article key={plan.name} className={plan.featured?"featured":""}>{plan.featured&&<div className="vxl-popular">MOST FLEXIBLE</div>}<span>{plan.name}</span><h3>₹{PLAN_PRICES[plan.id]["28_days"]}<small>/28 days</small></h3><p>{plan.note}</p><ul>{plan.features.map(feature=><li key={feature.label} className={feature.comingSoon?"is-coming-soon":""}><Check/>{feature.label}{feature.comingSoon&&<small>COMING SOON</small>}</li>)}</ul><button className={plan.featured?"vxl-chrome-button":"vxl-quiet-button"} onClick={() => openAuth("signup")}>Choose {plan.name}<ArrowRight/></button></article>)}</div>
+      {PLAN_GUIDE_ENABLED && <PlanGuide onSelectPlan={(plan) => { window.sessionStorage.setItem("vxl_intended_plan", plan); openAuth("signup"); }} />}
       <p className="vxl-pricing-note">Every plan includes every template, palette, typeface and effect. We charge for keeping your presence live—not for good taste.</p>
       <p className="vxl-pricing-note">Prices are shown in INR. International card payments are not currently available while Razorpay approval is pending.</p>
       <p className="vxl-compliance-note">By purchasing a VXL plan, you agree to our <Link href="/terms">Terms &amp; Conditions</Link> and <Link href="/refund-policy">Refund &amp; Cancellation Policy</Link>.</p>
