@@ -21,7 +21,7 @@ import { VxlLogo } from "@/app/vxl-logo";
 import { AiWriting } from "@/app/ai-writing";
 import { PlanBadge, type WorkspacePlan } from "@/app/plan-badge";
 import { defaultPaletteForTheme, defaultTextFinishForTheme, palettesForTheme, portfolioStyle, textFinishesForTheme } from "@/lib/portfolio-style";
-import { hasBrandFreePortfolio, PLAN_LIMITS } from "@/lib/plans";
+import { hasActivePlanAccess, hasBrandFreePortfolio, PLAN_LIMITS } from "@/lib/plans";
 import { trackEvent, trackOncePerSession } from "@/lib/analytics";
 import { ShowcaseBuilder } from "@/app/showcase-builder";
 import { CustomSectionsBuilder } from "@/app/custom-sections-builder";
@@ -322,7 +322,7 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
   );
   const completion = Math.round((completionChecks.filter((item) => item.done).length / completionChecks.length) * 100);
   const portfolioAnalysis = useMemo(() => analyzePortfolio(data), [data]);
-  const hasActiveSubscription = Boolean(subscription?.status === "active" && (!subscription.period_ends_at || new Date(subscription.period_ends_at).getTime() > now));
+  const hasActiveSubscription = hasActivePlanAccess(subscription?.status, subscription?.period_ends_at, now);
   const workspacePlan: WorkspacePlan = hasActiveSubscription && subscription ? subscription.plan : "free";
   const update = <K extends keyof State>(key: K, value: State[K]) => setData((current) => ({ ...current, [key]: value }));
   const save = async (payloadOrEvent: State | ReactMouseEvent<HTMLButtonElement> = data, successMessage = "Everything is saved.") => {
@@ -496,9 +496,9 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
       setNotice(`Your portfolio is saved, but before publishing please complete: ${missing.join(", ")}.`);
       return;
     }
-    const paid = subscription?.status === "active" && (!subscription.period_ends_at || new Date(subscription.period_ends_at).getTime() > now);
-    const publishWindow = paid ? `${subscription.plan.toUpperCase()} plan · live through ${subscription.period_ends_at ? new Date(subscription.period_ends_at).toLocaleDateString() : "your active billing period"}` : data.trialEndsAt ? `Free version · live until ${new Date(data.trialEndsAt).toLocaleDateString()}` : "Free version · your 7-day live period starts now";
-    const wordmark = paid && (subscription.plan === "flex" || subscription.plan === "care")
+    const paidSubscription = subscription && hasActivePlanAccess(subscription.status, subscription.period_ends_at, now) ? subscription : null;
+    const publishWindow = paidSubscription ? `${paidSubscription.plan.toUpperCase()} plan · live through ${new Date(paidSubscription.period_ends_at!).toLocaleDateString()}` : data.trialEndsAt ? `Free version · live until ${new Date(data.trialEndsAt).toLocaleDateString()}` : "Free version · your 7-day live period starts now";
+    const wordmark = paidSubscription && (paidSubscription.plan === "flex" || paidSubscription.plan === "care")
       ? "VXL wordmark: removed on Flex and Care"
       : "VXL wordmark: shown at the bottom on Free and Live";
     if (!window.confirm(`Publish this saved version?\n\n${publishWindow}\n${wordmark}\n\nOnly this saved version becomes public. Future draft edits stay private until you publish again.`)) return;
@@ -1367,8 +1367,8 @@ export function ProfileWorkspace({ account }: { account: { id: string; name: str
                 <div className="vxl-context-note mt-4">
                   <HelpCircle />
                   <div>
-                    <strong>{subscription?.status === "active" ? `${subscription.plan.toUpperCase()} publishing` : "Free publishing"}</strong>
-                    <p>{subscription?.status !== "active" ? "Your first publish starts a 7-day live period. Draft editing remains free and private." : subscription.plan === "live" && publishRemaining !== null ? `${publishRemaining} of ${livePublishLimit} publishing updates remain in this 28-day allowance.` : "Your active plan includes unlimited publishing updates."}</p>
+                    <strong>{hasActiveSubscription && subscription ? `${subscription.plan.toUpperCase()} publishing` : "Free publishing"}</strong>
+                    <p>{!hasActiveSubscription || !subscription ? "Your first publish starts a 7-day live period. Draft editing remains free and private." : subscription.plan === "live" && publishRemaining !== null ? `${publishRemaining} of ${livePublishLimit} publishing updates remain in this 28-day allowance.` : "Your active plan includes unlimited publishing updates."}</p>
                   </div>
                 </div>
                 <div className="mt-6 rounded-xl border border-slate-200 p-4">
