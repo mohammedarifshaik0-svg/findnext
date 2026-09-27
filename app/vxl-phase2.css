@@ -198,6 +198,34 @@
 .portfolio-customizable[data-vxl-density="spacious"] .portfolio-custom-section { padding-top: 9rem; padding-bottom: 9rem; }
 .portfolio-customizable [data-vxl-treatment="tinted"] { background: color-mix(in srgb, var(--portfolio-bg) 86%, var(--portfolio-accent) 14%) !important; }
 .portfolio-customizable [data-vxl-treatment="outline"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--portfolio-accent) 45%, transparent); }
+
+/* Mirror advanced customization inside the editor's live preview. */
+.p2-mini.vxl-mini-custom { display: flex; flex-direction: column; }
+.p2-mini.vxl-mini-custom > .p2-mini-header { order: 0; }
+.p2-mini.vxl-mini-custom > [data-vxl-mini-section="story"] { order: var(--vxl-mini-order-story); }
+.p2-mini.vxl-mini-custom > [data-vxl-mini-section="skills"] { order: var(--vxl-mini-order-skills); }
+.p2-mini.vxl-mini-custom > [data-vxl-mini-section="experience"] { order: var(--vxl-mini-order-experience); }
+.p2-mini.vxl-mini-custom > [data-vxl-mini-section="projects"] { order: var(--vxl-mini-order-projects); }
+.p2-mini.vxl-mini-custom > footer { order: 100; }
+.vxl-mini-custom[data-vxl-density="compact"] section { margin-top: 1.5rem !important; }
+.vxl-mini-custom[data-vxl-density="spacious"] section { margin-top: 5rem !important; }
+.vxl-mini-custom[data-vxl-corners="sharp"] article,
+.vxl-mini-custom[data-vxl-corners="sharp"] .p2-mini-portrait { border-radius: 0 !important; }
+.vxl-mini-custom[data-vxl-corners="soft"] article,
+.vxl-mini-custom[data-vxl-corners="soft"] .p2-mini-portrait { border-radius: .75rem !important; }
+.vxl-mini-custom[data-vxl-corners="rounded"] article,
+.vxl-mini-custom[data-vxl-corners="rounded"] .p2-mini-portrait { border-radius: 1.5rem !important; }
+.vxl-mini-custom[data-vxl-headings="editorial"] h2,
+.vxl-mini-custom[data-vxl-headings="editorial"] h3 { font-family: Georgia, serif !important; font-weight: 500 !important; text-transform: none !important; }
+.vxl-mini-custom[data-vxl-headings="modern"] h2,
+.vxl-mini-custom[data-vxl-headings="modern"] h3 { font-family: "Helvetica Neue", Arial, sans-serif !important; text-transform: none !important; }
+.vxl-mini-custom[data-vxl-headings="statement"] h2,
+.vxl-mini-custom[data-vxl-headings="statement"] h3 { font-family: Arial, sans-serif !important; font-weight: 950 !important; letter-spacing: -.055em !important; text-transform: uppercase !important; }
+.vxl-mini-custom[data-vxl-showcases="minimal"] .p2-mini-work article { grid-template-columns: 1fr; background: transparent !important; }
+.vxl-mini-custom[data-vxl-showcases="minimal"] .p2-mini-work article > * { grid-column: 1; }
+.vxl-mini-custom[data-vxl-showcases="grid"] .p2-mini-work { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .6rem; }
+.vxl-mini-custom[data-vxl-showcases="grid"] .p2-mini-work > span { grid-column: 1/-1; }
+.vxl-mini-custom[data-vxl-showcases="grid"] .p2-mini-work article { display: block; margin-top: 0; }
 .portfolio-customizable[data-vxl-corners="sharp"] :is(article, button, a[class*="rounded"], [class*="rounded-"]) { border-radius: 0 !important; }
 .portfolio-customizable[data-vxl-corners="soft"] :is(article, button) { border-radius: .75rem; }
 .portfolio-customizable[data-vxl-corners="rounded"] :is(article, button) { border-radius: 1.5rem; }
